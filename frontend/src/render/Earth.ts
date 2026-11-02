@@ -28,6 +28,9 @@ void main() {
 const earthFragment = /* glsl */ `
 uniform sampler2D uLand;
 uniform float uHasLand;
+uniform sampler2D uRegion;   // r = permitted territory, g = prohibited territory
+uniform float uHasRegion;
+uniform float uBusiness;
 varying vec3 vObj;
 varying vec3 vNormalV;
 varying vec3 vViewDir;
@@ -64,6 +67,15 @@ void main() {
   vec3 landDots = vec3(0.180, 0.420, 0.620);
   vec3 col = mix(ocean, landBase + landDots * dots, land);
   col += vec3(0.05, 0.12, 0.20) * grid * 0.6;
+
+  // Business Mode: tint permitted jurisdictions teal and prohibited ones red;
+  // land outside both is dimmed so the regulatory boundary reads at a glance.
+  if (uBusiness > 0.5) {
+    vec2 rg = uHasRegion * texture2D(uRegion, uv).rg;
+    float inside = max(rg.r, rg.g);
+    col = mix(col, col * 0.45, land * (1.0 - inside));
+    col += (vec3(0.06, 0.55, 0.62) * rg.r + vec3(0.75, 0.08, 0.08) * rg.g) * (0.25 + 0.45 * land) * (0.75 + 0.25 * dots);
+  }
   col *= light;
   // Rim light towards the limb.
   col += vec3(0.10, 0.35, 0.70) * pow(1.0 - facing, 3.0) * 0.6;
@@ -97,6 +109,8 @@ export class Earth {
   private material: THREE.ShaderMaterial;
   private landTexture?: THREE.CanvasTexture;
   private borders?: THREE.LineSegments;
+  private regionTexture?: THREE.CanvasTexture;
+  private regionLines?: THREE.LineSegments;
   private disposables: { dispose(): void }[] = [];
 
   constructor() {
@@ -104,7 +118,7 @@ export class Earth {
     this.material = new THREE.ShaderMaterial({
       vertexShader: earthVertex,
       fragmentShader: earthFragment,
-      uniforms: { uLand: { value: null }, uHasLand: { value: 0 } },
+      uniforms: { uLand: { value: null }, uHasLand: { value: 0 }, uRegion: { value: null }, uHasRegion: { value: 0 }, uBusiness: { value: 0 } },
     });
     const earth = new THREE.Mesh(sphere, this.material);
     earth.renderOrder = 0;
@@ -191,6 +205,82 @@ export class Earth {
     this.group.add(this.borders);
   }
 
+  setBusinessMode(on: boolean): void {
+    this.material.uniforms.uBusiness.value = on ? 1 : 0;
+    if (this.regionLines) this.regionLines.visible = on;
+  }
+
+  /**
+   * Draws regulatory boundaries from the compliance engine's region
+   * geometry (GeoJSON FeatureCollections of Polygon/MultiPolygon features):
+   * a tint texture sampled by the Earth shader plus border lines.
+   */
+  setRegionOverlay(permitted: GeoJSONFeatureCollection[], prohibited: GeoJSONFeatureCollection[], textureWidth = 2048): void {
+    const w = textureWidth;
+    const h = textureWidth / 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("2D canvas unavailable");
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = "lighter"; // permitted (red channel) and prohibited (green) add up
+    const pos: number[] = [];
+    const col: number[] = [];
+    const v = [0, 0, 0] as [number, number, number];
+    const draw = (fcs: GeoJSONFeatureCollection[], fill: string, rgb: [number, number, number]) => {
+      ctx.fillStyle = fill;
+      for (const fc of fcs) {
+        for (const feat of fc.features) {
+          for (const poly of polygonsOf(feat.geometry)) {
+            ctx.beginPath();
+            for (const ring of poly) {
+              ring.forEach(([lon, lat], i) => {
+                const x = ((lon + 180) / 360) * w;
+                const y = ((90 - lat) / 180) * h;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                if (i > 0) {
+                  const [plon, plat] = ring[i - 1];
+                  if (Math.abs(lon - plon) > 180) return; // antimeridian seam
+                  latLonToVec3(plat, plon, 1.0012, v);
+                  pos.push(...v);
+                  latLonToVec3(lat, lon, 1.0012, v);
+                  pos.push(...v);
+                  col.push(...rgb, ...rgb);
+                }
+              });
+              ctx.closePath();
+            }
+            ctx.fill("evenodd");
+          }
+        }
+      }
+    };
+    draw(permitted, "#f00", [0.2, 0.85, 0.95]);
+    draw(prohibited, "#0f0", [1.0, 0.25, 0.25]);
+
+    this.regionTexture?.dispose();
+    this.regionTexture = new THREE.CanvasTexture(canvas);
+    this.regionTexture.colorSpace = THREE.NoColorSpace;
+    this.material.uniforms.uRegion.value = this.regionTexture;
+    this.material.uniforms.uHasRegion.value = permitted.length + prohibited.length > 0 ? 1 : 0;
+
+    if (this.regionLines) {
+      this.group.remove(this.regionLines);
+      this.regionLines.geometry.dispose();
+      (this.regionLines.material as THREE.Material).dispose();
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    this.regionLines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85, depthWrite: false }));
+    this.regionLines.renderOrder = 1;
+    this.regionLines.visible = this.material.uniforms.uBusiness.value > 0.5;
+    this.group.add(this.regionLines);
+  }
+
   private makeStars(n: number): THREE.Points {
     const pos = new Float32Array(n * 3);
     let seed = 1337;
@@ -209,8 +299,26 @@ export class Earth {
 
   dispose(): void {
     this.landTexture?.dispose();
+    this.regionTexture?.dispose();
+    this.regionLines?.geometry.dispose();
     this.borders?.geometry.dispose();
     (this.borders?.material as THREE.Material | undefined)?.dispose();
     for (const d of this.disposables) d.dispose();
   }
+}
+
+export interface GeoJSONGeometry {
+  type: string;
+  coordinates: unknown;
+}
+export interface GeoJSONFeatureCollection {
+  type: "FeatureCollection";
+  features: { type: "Feature"; properties?: Record<string, unknown>; geometry: GeoJSONGeometry }[];
+}
+
+/** Polygons (each a list of [lon, lat] rings) of a Polygon or MultiPolygon. */
+export function polygonsOf(g: GeoJSONGeometry): [number, number][][][] {
+  if (g.type === "Polygon") return [g.coordinates as [number, number][][]];
+  if (g.type === "MultiPolygon") return g.coordinates as [number, number][][][];
+  return [];
 }

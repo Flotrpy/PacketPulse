@@ -21,7 +21,8 @@ const O_SEV_PREV = 14;
 const O_FLASH = 16;
 const O_TIMING = 18; // birth, sevChange, segIndex, segCount
 const O_STYLE = 22; // phase, highlight, visible, medium
-export const STRIDE = 26;
+const O_COMPLIANCE = 26; // status code at start, end (Business Mode)
+export const STRIDE = 28;
 
 export interface ArcSegment {
   p0: Vec3;
@@ -96,6 +97,7 @@ export class ArcLayer {
         uCycle: { value: opts.cycleSeconds ?? 3.2 },
         uResolution: { value: new THREE.Vector2(1, 1) },
         uFocusActive: { value: 0 },
+        uBusiness: { value: 0 },
       },
       transparent: true,
       depthWrite: false,
@@ -124,6 +126,7 @@ export class ArcLayer {
     attr("aFlash", 2, O_FLASH);
     attr("aTiming", 4, O_TIMING);
     attr("aStyle", 4, O_STYLE);
+    attr("aCompliance", 2, O_COMPLIANCE);
     this.capacity = capacity;
     this.dirtyMin = Infinity;
     this.dirtyMax = -1;
@@ -175,6 +178,7 @@ export class ArcLayer {
     d[o + O_STYLE + 1] = 0;
     d[o + O_STYLE + 2] = 1;
     d[o + O_STYLE + 3] = s.medium;
+    d[o + O_COMPLIANCE] = d[o + O_COMPLIANCE + 1] = 0;
     this.markDirty(slot);
   }
 
@@ -204,6 +208,19 @@ export class ArcLayer {
   setHighlight(slot: number, on: boolean): void {
     this.data[slot * STRIDE + O_STYLE + 1] = on ? 1 : 0;
     this.markDirty(slot);
+  }
+
+  /** Compliance status codes (core/compliance.ts) at the segment's start and end. */
+  setCompliance(slot: number, start: number, end: number): void {
+    const o = slot * STRIDE + O_COMPLIANCE;
+    if (this.data[o] === start && this.data[o + 1] === end) return;
+    this.data[o] = start;
+    this.data[o + 1] = end;
+    this.markDirty(slot);
+  }
+
+  setBusinessMode(on: boolean): void {
+    this.material.uniforms.uBusiness.value = on ? 1 : 0;
   }
 
   setFocusActive(active: boolean): void {

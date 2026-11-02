@@ -5,6 +5,7 @@
  * from four per-instance control points and extrudes the strip in screen
  * space, so lines keep a constant pixel width at any zoom.
  */
+import { GLSL_COMPLIANCE } from "../core/compliance";
 import { GLSL_HEALTH } from "../core/health";
 
 /** Medium codes written into aStyle.w. */
@@ -28,6 +29,7 @@ attribute vec2 aSevPrev;  // severity before the last update (for smooth transit
 attribute vec2 aFlash;    // loss flash weight at start / end
 attribute vec4 aTiming;   // birthTime, severityChangeTime, segmentIndex, segmentCount
 attribute vec4 aStyle;    // phase, highlight, visible, medium
+attribute vec2 aCompliance; // compliance status code at segment start / end (Business Mode)
 
 uniform float uTime;
 uniform float uWidth;        // px
@@ -45,6 +47,7 @@ varying float vHighlight;
 varying float vMedium;
 varying float vPhase;
 varying float vSegCount;
+varying float vCompliance;
 
 vec3 bez(float t) {
   float u = 1.0 - t;
@@ -89,6 +92,7 @@ void main() {
   vHighlight = aStyle.y;
   vMedium = aStyle.w;
   vPhase = aStyle.x;
+  vCompliance = mix(aCompliance.x, aCompliance.y, t);
 }
 `;
 
@@ -96,6 +100,7 @@ export const arcFragmentShader = /* glsl */ `
 uniform float uTime;
 uniform float uCycle;        // seconds for a packet pulse to traverse a whole path
 uniform float uFocusActive;  // 1 when a path is selected (others dim)
+uniform float uBusiness;     // 1 = colour by compliance instead of latency
 
 varying float vT;
 varying float vSide;
@@ -107,8 +112,10 @@ varying float vHighlight;
 varying float vMedium;
 varying float vPhase;
 varying float vSegCount;
+varying float vCompliance;
 
 ${GLSL_HEALTH}
+${GLSL_COMPLIANCE}
 
 void main() {
   if (vT > vReveal) discard;
@@ -123,6 +130,17 @@ void main() {
   float flash = vFlash * (0.5 + 0.5 * sin(uTime * 13.0 + vPhase * 6.2831));
   col = mix(col, vec3(1.0, 0.06, 0.06), clamp(flash, 0.0, 1.0) * 0.85);
 
+  // Business Mode: hue = compliance status. Violating stretches flash red,
+  // suspected ones breathe amber, ungoverned traffic fades to grey.
+  float business = 1.0;
+  if (uBusiness > 0.5) {
+    col = complianceColor(vCompliance);
+    float viol = smoothstep(2.4, 2.9, vCompliance);
+    float susp = smoothstep(1.4, 1.9, vCompliance) * (1.0 - viol);
+    col *= 1.0 + 0.6 * viol * (0.5 + 0.5 * sin(uTime * 9.0 + vPhase * 6.2831)) + 0.25 * susp * sin(uTime * 3.0);
+    business = mix(0.35, 1.0, step(0.5, vCompliance));
+  }
+
   // Packet pulse travelling along the whole path; bright head, fading tail.
   float head = fract(uTime / uCycle + vPhase);
   float behind = head - vGlobal;
@@ -133,7 +151,7 @@ void main() {
   if (vMedium > 1.5 && vMedium < 2.5) pattern = 0.35 + 0.65 * step(0.45, fract(vT * 60.0));
   else if (vMedium < 0.5) pattern = 0.25 + 0.75 * step(0.4, fract(vT * 14.0));
 
-  float dim = mix(1.0, mix(0.18, 1.0, vHighlight), uFocusActive);
+  float dim = mix(1.0, mix(0.18, 1.0, vHighlight), uFocusActive) * business;
   // Additive blending: keep the base line dim enough that overlapping arcs
   // keep their hue instead of saturating to white; the packet head carries
   // the bright highlight.

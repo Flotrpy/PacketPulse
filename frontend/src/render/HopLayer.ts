@@ -4,6 +4,7 @@
  * only the changed range is uploaded.
  */
 import * as THREE from "three";
+import { GLSL_COMPLIANCE } from "../core/compliance";
 import { GLSL_HEALTH } from "../core/health";
 import type { Vec3 } from "../core/geo";
 
@@ -11,6 +12,7 @@ const vertexShader = /* glsl */ `
 attribute float aSev;
 attribute float aFlash;
 attribute vec2 aState; // x = visible, y = 0 normal | 1 path highlighted | 2 selected hop
+attribute float aCompliance;
 uniform float uSize;
 uniform float uPixelRatio;
 uniform float uFocusActive;
@@ -18,7 +20,9 @@ varying float vSev;
 varying float vFlash;
 varying float vSelected;
 varying float vDim;
+varying float vCompliance;
 void main() {
+  vCompliance = aCompliance;
   if (aState.x < 0.5) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   gl_Position = projectionMatrix * mv;
@@ -36,11 +40,14 @@ void main() {
 
 const fragmentShader = /* glsl */ `
 uniform float uTime;
+uniform float uBusiness;
 varying float vSev;
 varying float vFlash;
 varying float vSelected;
 varying float vDim;
+varying float vCompliance;
 ${GLSL_HEALTH}
+${GLSL_COMPLIANCE}
 void main() {
   vec2 p = gl_PointCoord * 2.0 - 1.0;
   float r = length(p);
@@ -48,6 +55,11 @@ void main() {
   vec3 col = severityColor(vSev);
   float flash = vFlash * (0.5 + 0.5 * sin(uTime * 13.0));
   col = mix(col, vec3(1.0, 0.06, 0.06), flash * 0.85);
+  float business = 1.0;
+  if (uBusiness > 0.5) {
+    col = complianceColor(vCompliance);
+    business = mix(0.4, 1.0, step(0.5, vCompliance));
+  }
   float dotCore = 1.0 - smoothstep(0.35, 0.5, r);
   float halo = (1.0 - r) * 0.6;
   // Selected hop: expanding ring.
@@ -55,7 +67,7 @@ void main() {
   float ring = vSelected * (1.0 - smoothstep(0.0, 0.08, abs(r - ringR))) * (1.0 - fract(uTime * 0.8));
   float rim = smoothstep(0.32, 0.42, r) * (1.0 - smoothstep(0.42, 0.5, r));
   vec3 rgb = mix(col, vec3(0.02, 0.04, 0.08), rim * 0.8) + vec3(1.0) * ring;
-  float a = clamp(dotCore + halo * 0.5 + ring, 0.0, 1.0) * vDim;
+  float a = clamp(dotCore + halo * 0.5 + ring, 0.0, 1.0) * vDim * business;
   gl_FragColor = vec4(rgb, a);
 }
 `;
@@ -73,6 +85,7 @@ export class HopLayer {
   private sev!: THREE.BufferAttribute;
   private flash!: THREE.BufferAttribute;
   private state!: THREE.BufferAttribute;
+  private compliance!: THREE.BufferAttribute;
   private dirtyMin = Infinity;
   private dirtyMax = -1;
   /** CPU copy of positions for picking. */
@@ -84,7 +97,7 @@ export class HopLayer {
     this.material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
-      uniforms: { uSize: { value: sizePx }, uPixelRatio: { value: 1 }, uTime: { value: 0 }, uFocusActive: { value: 0 } },
+      uniforms: { uSize: { value: sizePx }, uPixelRatio: { value: 1 }, uTime: { value: 0 }, uFocusActive: { value: 0 }, uBusiness: { value: 0 } },
       transparent: true,
       depthWrite: false,
       // Normal blending: stacked markers at busy hubs keep their colour.
@@ -107,11 +120,13 @@ export class HopLayer {
     this.sev = grow(this.sev, 1);
     this.flash = grow(this.flash, 1);
     this.state = grow(this.state, 2);
+    this.compliance = grow(this.compliance, 1);
     this.positions = this.pos.array as Float32Array;
     this.geometry.setAttribute("position", this.pos);
     this.geometry.setAttribute("aSev", this.sev);
     this.geometry.setAttribute("aFlash", this.flash);
     this.geometry.setAttribute("aState", this.state);
+    this.geometry.setAttribute("aCompliance", this.compliance);
     this.capacity = capacity;
     this.dirtyMin = Infinity;
     this.dirtyMax = -1;
@@ -139,6 +154,7 @@ export class HopLayer {
     (this.flash.array as Float32Array)[slot] = flash ? 1 : 0;
     const st = this.state.array as Float32Array;
     st[slot * 2] = 1;
+    (this.compliance.array as Float32Array)[slot] = 0;
     this.mark(slot);
   }
 
@@ -152,6 +168,17 @@ export class HopLayer {
   setState(slot: number, level: 0 | 1 | 2): void {
     (this.state.array as Float32Array)[slot * 2 + 1] = level;
     this.mark(slot);
+  }
+
+  setCompliance(slot: number, code: number): void {
+    const a = this.compliance.array as Float32Array;
+    if (a[slot] === code) return;
+    a[slot] = code;
+    this.mark(slot);
+  }
+
+  setBusinessMode(on: boolean): void {
+    this.material.uniforms.uBusiness.value = on ? 1 : 0;
   }
 
   isVisible(slot: number): boolean {
@@ -176,7 +203,7 @@ export class HopLayer {
     this.material.uniforms.uPixelRatio.value = pixelRatio;
     if (this.dirtyMax < 0) return;
     const n = this.dirtyMax - this.dirtyMin + 1;
-    for (const [attr, size] of [[this.pos, 3], [this.sev, 1], [this.flash, 1], [this.state, 2]] as const) {
+    for (const [attr, size] of [[this.pos, 3], [this.sev, 1], [this.flash, 1], [this.state, 2], [this.compliance, 1]] as const) {
       attr.clearUpdateRanges();
       attr.addUpdateRange(this.dirtyMin * size, n * size);
       attr.needsUpdate = true;
