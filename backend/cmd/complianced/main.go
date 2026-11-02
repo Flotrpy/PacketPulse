@@ -74,11 +74,11 @@ func run() error {
 			origins = append(origins, o)
 		}
 	}
-	admins, err := parseTokens(os.Getenv("COMPLIANCE_ADMIN_TOKENS"))
+	admins, err := api.ParseTokens(os.Getenv("COMPLIANCE_ADMIN_TOKENS"))
 	if err != nil {
 		return fmt.Errorf("COMPLIANCE_ADMIN_TOKENS: %w", err)
 	}
-	readers, err := parseTokens(os.Getenv("COMPLIANCE_READ_TOKENS"))
+	readers, err := api.ParseTokens(os.Getenv("COMPLIANCE_READ_TOKENS"))
 	if err != nil {
 		return fmt.Errorf("COMPLIANCE_READ_TOKENS: %w", err)
 	}
@@ -119,22 +119,6 @@ func run() error {
 	sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return srv.Shutdown(sctx)
-}
-
-// parseTokens reads "actor:token,actor2:token2".
-func parseTokens(s string) (map[string]string, error) {
-	out := map[string]string{}
-	for _, part := range strings.Split(s, ",") {
-		if part = strings.TrimSpace(part); part == "" {
-			continue
-		}
-		actor, tok, ok := strings.Cut(part, ":")
-		if !ok || actor == "" || len(tok) < 16 {
-			return nil, errors.New(`want "actor:token" pairs with tokens of at least 16 characters`)
-		}
-		out[tok] = actor
-	}
-	return out, nil
 }
 
 func findDataDir(v string) (string, error) {

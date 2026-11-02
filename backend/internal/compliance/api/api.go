@@ -625,3 +625,22 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 func writeErr(w http.ResponseWriter, code int, err error) {
 	writeJSON(w, code, map[string]string{"error": err.Error()})
 }
+
+// ParseTokens reads "actor:token,actor2:token2" into token -> actor.
+func ParseTokens(s string) (map[string]string, error) {
+	out := map[string]string{}
+	for _, part := range strings.Split(s, ",") {
+		if part = strings.TrimSpace(part); part == "" {
+			continue
+		}
+		actor, tok, ok := strings.Cut(part, ":")
+		if !ok || actor == "" || len(tok) < 16 {
+			return nil, errors.New(`want "actor:token" pairs with tokens of at least 16 characters`)
+		}
+		out[tok] = actor
+	}
+	return out, nil
+}
+
+// MatchToken returns the actor of tok (constant-time compare).
+func MatchToken(tokens map[string]string, tok string) (string, bool) { return match(tokens, tok) }
