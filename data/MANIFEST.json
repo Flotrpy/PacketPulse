@@ -1,0 +1,221 @@
+{
+ "fetched": "2026-11-02",
+ "files": [
+  {
+   "path": "data/raw/afterfibre/AUC_2025.geojson",
+   "bytes": 102139,
+   "sha256": "ff88508405bc147af1757c3e0aa9bd9bf9fbde4b1b0d86138aa24b31029c56cd",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/afterfibre/AfTerFibre_cities.geojson",
+   "bytes": 151039,
+   "sha256": "909539c5c96a8fbccbab94e18165d890e6d9f362ec32d6667347c3c6beaa2fda",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/afterfibre/africa-fiber.tilejson",
+   "bytes": 915,
+   "sha256": "a33196caad678c330ca73aed7fbff93e51eb49fbf921180e88829d87a8987e39",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/caida/20261001.as-org2info.jsonl.gz",
+   "bytes": 4631890,
+   "sha256": "eca6fc2322ab2a10ce0f9ab74e69b65928a3899af15b6c96a5e53c3bf572e6b0",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/caida/20261001.as-rel.txt.bz2",
+   "bytes": 1643168,
+   "sha256": "d69e90447ef177531a244e5a732403fdbb98e1768d6b7befe27c5f3ab0f89428",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/cloud/aws-ip-ranges.json.gz",
+   "bytes": 130730,
+   "sha256": "9a2b24ed65f21a4da2de0d34a4419cdd1be6266f7e5f838ceff5c82aae52b9d7",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/cloud/azure-service-tags.json.gz",
+   "bytes": 533107,
+   "sha256": "ba89eebb6e8ef606b0b6779962b794b059a1cce0ae2d024f4c7a4529d44aafab",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/cloud/cloudflare-ips-v4.txt",
+   "bytes": 230,
+   "sha256": "f02c6d83bc01ab0ae8577160e036d700c7455359bce054df884e5d7d9e4e9e7b",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/cloud/cloudflare-ips-v6.txt",
+   "bytes": 104,
+   "sha256": "9e9d39e3e83bad00c4decafd53c63fa62029f3d95db68de937d2be28234ca0a9",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/cloud/gcp-cloud.json",
+   "bytes": 117747,
+   "sha256": "549ea4d4ab01eff7deec1f2157547a777f952feedf58f6bec40d99296e6613ea",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/cloud/oracle-public-ip-ranges.json",
+   "bytes": 236787,
+   "sha256": "c070ef9ff7bea6d63e56e19578d083ffbdbd535c1344d6b74d36d23cce2cd228",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/dbip/dbip-asn-lite-2026-11.mmdb.gz",
+   "bytes": 5237630,
+   "sha256": "36a8c45136877d8df48ad371de6c9c97c861dedd356277f30de730c16fc0f928",
+   "in_git": false
+  },
+  {
+   "path": "data/raw/dbip/dbip-city-lite-2026-11.mmdb.gz",
+   "bytes": 60125343,
+   "sha256": "b69c625515f636ac92112b71df26bb92a5748f648c79bad124ecd9ba1c97bf4a",
+   "in_git": false
+  },
+  {
+   "path": "data/raw/iptoasn/ip2asn-combined.tsv.gz",
+   "bytes": 10955454,
+   "sha256": "1634a0e449f3ee11088bba85493447a51007b44dff3ac18328f1f2d9127c0a9e",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/mcc-mnc/mcc-mnc-list.json.gz",
+   "bytes": 77445,
+   "sha256": "d05ca41b42bf0a329a389f94ee0c3146ac61942eb8bae7ec4bd57db5eb9481cb",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/naturalearth/ne_10m_admin_0_disputed_areas.geojson.gz",
+   "bytes": 195095,
+   "sha256": "ff3f711c81967e77dcdc68a3a15e4e2789edaef54838972c44720b39b7fea9cb",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/naturalearth/ne_50m_admin_0_countries.geojson.gz",
+   "bytes": 1023976,
+   "sha256": "e3cac42e7a5f2b90488a9cdb8c17efe1c113f951bfec2e1623d812413194c5ad",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/ourairports/airports.csv.gz",
+   "bytes": 3803010,
+   "sha256": "db0fd58c63cddf5196e5db9ead163ba9f1634f59bfe43eeddc03771fd196be55",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/campus.json.gz",
+   "bytes": 6216,
+   "sha256": "091101fa31f455d58a646070e6a4893fbd2de0f86ff319443fb02ad1efafa831",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/carrier.json.gz",
+   "bytes": 129508,
+   "sha256": "032f185fdb5bd626f6a83156abdc8fa77fb818b581115e910ab86a0f749cb3ff",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/carrierfac.json.gz",
+   "bytes": 117265,
+   "sha256": "be49d16ca70c4ee45e07609055b1a77b5fe518fc5411d95b8e682e50831ba82a",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/fac.json.gz",
+   "bytes": 756655,
+   "sha256": "e7ac89e7434cbc40d45bd45b3f876b0acb93cb5a32c184a0d157b050c433f609",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/ix.json.gz",
+   "bytes": 199228,
+   "sha256": "c585899ed50e3d487862dccedae270e779f932eb5aeb569a57a2cfda1fa14973",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/ixfac.json.gz",
+   "bytes": 148382,
+   "sha256": "b10bb1e30be909320df192f3a1e15308099edb1784853051877bb152fecc8e4d",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/ixlan.json.gz",
+   "bytes": 29337,
+   "sha256": "d5767c8c7eecc0ac6f0329315ee681270dd431d34b7f6f97d1ebf4fa2e76a164",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/ixpfx.json.gz",
+   "bytes": 53009,
+   "sha256": "c05fcfb7c02b2cd2c3363138dad3140013e793be0933b0dad299c0610406351a",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/net.json.gz",
+   "bytes": 4246545,
+   "sha256": "4ea6d5e9bc0448f05b34615d52812975802f47d033e0c39498d3fe0140fe210f",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/netfac.json.gz",
+   "bytes": 2094967,
+   "sha256": "28992fb5fd0162ba11ee7b5fbd8e86e5470a357ef934a21fadc3d5fe85968855",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/netixlan.json.gz",
+   "bytes": 3182932,
+   "sha256": "c9e3019833c20fdd2a127ee059ca354729aac129a6e6aa99e423e57574581b0a",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/peeringdb/org.json.gz",
+   "bytes": 3011951,
+   "sha256": "c373db5118f763bed2c9bf5b9eff4f21fa2d26f9f9f894f0d33d4c2783e1ed3c",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/ripe-atlas/probes-meta-latest.bz2",
+   "bytes": 2412029,
+   "sha256": "bfc7d03a28a62446d5cac483274706f685690d46d6991db04e6d8d1da6035b85",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/rir/nro-delegated-stats.txt.gz",
+   "bytes": 9574685,
+   "sha256": "536c11f8b6a20368419f05afe00d6d8d6b63c344557bfee0ddc454d9ff4c3685",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/telegeography/cable_all.json",
+   "bytes": 41162,
+   "sha256": "0935913eb42b6b2feacbb2c021389c3df7e292f27ffff954f82787eafe6da115",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/telegeography/cable_cable-geo.json.gz",
+   "bytes": 258336,
+   "sha256": "451d3718f76fce513fd1b5c6d9ef58e550dee8ac1114918dc8eaf4bec7124271",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/telegeography/cables-detail.tar.gz",
+   "bytes": 122214,
+   "sha256": "a9389772ac5d96cd482587c4cbe0190a1e275f78b4356ec1f8c6852d4020a375",
+   "in_git": true
+  },
+  {
+   "path": "data/raw/telegeography/landing-point_landing-point-geo.json.gz",
+   "bytes": 74274,
+   "sha256": "c5690808df5dfd53e3545068c6ab51ddd675014fbc1478a656c0c8a8e103dead",
+   "in_git": true
+  }
+ ]
+}

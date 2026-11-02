@@ -1,0 +1,395 @@
+{
+  "description": "Law Directory seed: data-protection, localization and cybersecurity laws per jurisdiction. Summaries are written for this project (not copied from trackers) and must be reviewed by counsel before production use. Each entry links to the DLA Piper country page; UNCTAD and IAPP are listed in sources.json.",
+  "as_of": "2026-11-02",
+  "schema": {
+    "localization.level": "none | sectoral | conditional | strict",
+    "transfer_regime": "free | adequacy_or_safeguards | approval_or_assessment | restricted",
+    "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c={iso2}  (use t=transfer for transfer rules)"
+  },
+  "jurisdictions": [
+    {
+      "iso2": "EU", "name": "European Union (applies to all 27 member states; EEA via EEA Agreement)",
+      "laws": [
+        {"short": "GDPR", "name": "General Data Protection Regulation", "citation": "Regulation (EU) 2016/679", "in_force": "2018-05-25", "type": "data_protection"},
+        {"short": "NIS2", "name": "Directive on measures for a high common level of cybersecurity", "citation": "Directive (EU) 2022/2555", "in_force": "2024-10-18", "type": "cybersecurity"},
+        {"short": "Data Act", "name": "Data Act", "citation": "Regulation (EU) 2023/2854", "in_force": "2025-09-12", "type": "data_access", "note": "Art. 32 requires cloud providers to resist unlawful third-country government access to non-personal data."},
+        {"short": "CRA", "name": "Cyber Resilience Act", "citation": "Regulation (EU) 2024/2847", "in_force": "2024-12-10", "type": "cybersecurity", "note": "Main obligations apply from Dec 2027; reporting from Sept 2026."},
+        {"short": "DORA", "name": "Digital Operational Resilience Act", "citation": "Regulation (EU) 2022/2554", "in_force": "2025-01-17", "type": "sectoral_finance"}
+      ],
+      "localization": {"level": "none", "notes": "No general localization. Transfers outside the EEA need adequacy (Art. 45), appropriate safeguards such as SCCs/BCRs (Art. 46) or a derogation (Art. 49). Some member states localize specific data (e.g. health data hosting rules in France 'HDS', Germany for some public-sector data)."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "EDPB + national DPAs",
+      "max_penalty": "EUR 20M or 4% of global annual turnover",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=DE"
+    },
+    {
+      "iso2": "GB", "name": "United Kingdom",
+      "laws": [
+        {"short": "UK GDPR", "name": "UK General Data Protection Regulation", "citation": "Retained Regulation (EU) 2016/679 as amended", "in_force": "2021-01-01", "type": "data_protection"},
+        {"short": "DPA 2018", "name": "Data Protection Act 2018", "citation": "2018 c. 12", "in_force": "2018-05-25", "type": "data_protection"},
+        {"short": "DUAA", "name": "Data (Use and Access) Act 2025", "citation": "2025 c. 18", "in_force": "2025-06-19", "type": "data_protection", "note": "Commenced in stages through 2026; replaces adequacy test with a 'data protection test' for UK transfers."},
+        {"short": "NIS Regs", "name": "Network and Information Systems Regulations 2018", "citation": "SI 2018/506", "in_force": "2018-05-10", "type": "cybersecurity"}
+      ],
+      "localization": {"level": "none", "notes": "No general localization."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "eu_adequacy": "yes (renewed Dec 2025, expires 2031-12-27)",
+      "regulator": "ICO",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=GB"
+    },
+    {
+      "iso2": "CH", "name": "Switzerland",
+      "laws": [{"short": "revFADP", "name": "Federal Act on Data Protection (revised)", "citation": "SR 235.1", "in_force": "2023-09-01", "type": "data_protection"}],
+      "localization": {"level": "none", "notes": "Transfers allowed to countries on the Federal Council list (Annex 1 DPO) or with safeguards. Swiss-US DPF in force since Sept 2024."},
+      "transfer_regime": "adequacy_or_safeguards", "eu_adequacy": "yes",
+      "regulator": "FDPIC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=CH"
+    },
+    {
+      "iso2": "US", "name": "United States",
+      "laws": [
+        {"short": "DOJ Bulk Data Rule", "name": "Preventing Access to U.S. Sensitive Personal Data and Government-Related Data by Countries of Concern", "citation": "28 CFR Part 202 (implements EO 14117)", "in_force": "2025-04-08", "type": "transfer_restriction", "note": "Prohibits/restricts transactions giving countries of concern (CN incl. HK/MO, CU, IR, KP, RU, VE) access to bulk sensitive data."},
+        {"short": "PADFA", "name": "Protecting Americans' Data from Foreign Adversaries Act of 2024", "citation": "15 U.S.C. 9901", "in_force": "2024-06-23", "type": "transfer_restriction", "note": "Data brokers; enforced by FTC."},
+        {"short": "CLOUD Act", "name": "Clarifying Lawful Overseas Use of Data Act", "citation": "18 U.S.C. 2713", "in_force": "2018-03-23", "type": "government_access", "note": "US providers must disclose data in their control regardless of storage location; key sovereignty risk for non-US customers."},
+        {"short": "HIPAA", "name": "Health Insurance Portability and Accountability Act", "citation": "45 CFR Parts 160, 164", "in_force": "1996", "type": "sectoral_health"},
+        {"short": "CCPA/CPRA", "name": "California Consumer Privacy Act as amended", "citation": "Cal. Civ. Code 1798.100 et seq.", "in_force": "2020-01-01", "type": "data_protection", "note": "About 20 states now have comprehensive privacy laws; none mandates general localization."},
+        {"short": "CIRCIA", "name": "Cyber Incident Reporting for Critical Infrastructure Act", "citation": "6 U.S.C. 681", "in_force": "2022", "type": "cybersecurity", "note": "CISA final rule pending."}
+      ],
+      "localization": {"level": "sectoral", "notes": "No general rule. Federal workloads (FedRAMP High / DoD IL5 / ITAR / CJIS) commonly require US-located storage and US persons."},
+      "transfer_regime": "free",
+      "eu_adequacy": "partial (DPF-certified organisations only)",
+      "regulator": "FTC, HHS OCR, DOJ NSD, state AGs, CPPA",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=US"
+    },
+    {
+      "iso2": "CA", "name": "Canada",
+      "laws": [
+        {"short": "PIPEDA", "name": "Personal Information Protection and Electronic Documents Act", "citation": "S.C. 2000, c. 5", "in_force": "2001", "type": "data_protection"},
+        {"short": "Law 25", "name": "Quebec Act to modernize legislative provisions as regards the protection of personal information", "citation": "S.Q. 2021, c. 25", "in_force": "2023-09-22", "type": "data_protection", "note": "Requires a privacy impact assessment before communicating PI outside Quebec."}
+      ],
+      "localization": {"level": "sectoral", "notes": "Nova Scotia (PIIDPA) public-sector data must stay in Canada; British Columbia relaxed its rule in 2021."},
+      "transfer_regime": "free", "eu_adequacy": "yes (commercial sector)",
+      "regulator": "OPC; CAI (Quebec)",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=CA"
+    },
+    {
+      "iso2": "BR", "name": "Brazil",
+      "laws": [
+        {"short": "LGPD", "name": "Lei Geral de Proteção de Dados", "citation": "Lei 13.709/2018", "in_force": "2020-09-18", "type": "data_protection"},
+        {"short": "ANPD Res. 19/2024", "name": "International Data Transfer Regulation", "citation": "Resolução CD/ANPD 19/2024", "in_force": "2024-08-23", "type": "transfer_rules", "note": "Brazilian SCCs mandatory for contract-based transfers from Aug 2025."},
+        {"short": "Marco Civil", "name": "Marco Civil da Internet", "citation": "Lei 12.965/2014", "in_force": "2014-06-23", "type": "internet_governance"}
+      ],
+      "localization": {"level": "none", "notes": "No general localization."},
+      "transfer_regime": "adequacy_or_safeguards", "eu_adequacy": "yes (Implementing Decision (EU) 2026/179, 26 Jan 2026; mutual)",
+      "regulator": "ANPD",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=BR"
+    },
+    {
+      "iso2": "CN", "name": "China (mainland)",
+      "laws": [
+        {"short": "PIPL", "name": "Personal Information Protection Law", "citation": "PRC PIPL 2021", "in_force": "2021-11-01", "type": "data_protection"},
+        {"short": "DSL", "name": "Data Security Law", "citation": "PRC DSL 2021", "in_force": "2021-09-01", "type": "data_security", "note": "'Important data' must be stored domestically; export requires CAC security assessment."},
+        {"short": "CSL", "name": "Cybersecurity Law (amended 2025)", "citation": "PRC CSL 2016, amended 28 Oct 2025", "in_force": "2026-01-01 (amendments)", "type": "cybersecurity", "note": "Art. 37: CIIOs must store PI and important data in mainland China."},
+        {"short": "CBDF Provisions", "name": "Provisions on Promoting and Regulating Cross-Border Data Flows", "citation": "CAC Order 2024", "in_force": "2024-03-22", "type": "transfer_rules", "note": "Volume thresholds for security assessment vs. standard contract vs. certification (certification measures effective 1 Jan 2026)."}
+      ],
+      "localization": {"level": "strict", "notes": "CIIOs and processors above volume thresholds must localize; exports need CAC assessment, standard contract filing, or certification."},
+      "transfer_regime": "approval_or_assessment",
+      "regulator": "Cyberspace Administration of China (CAC)",
+      "risk_flags": ["us_doj_country_of_concern", "national_intelligence_law_access"],
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=CN"
+    },
+    {
+      "iso2": "HK", "name": "Hong Kong SAR",
+      "laws": [
+        {"short": "PDPO", "name": "Personal Data (Privacy) Ordinance", "citation": "Cap. 486", "in_force": "1996", "type": "data_protection", "note": "s.33 transfer restriction never brought into force."},
+        {"short": "PCICSO", "name": "Protection of Critical Infrastructures (Computer Systems) Ordinance", "citation": "Cap. 653", "in_force": "2026-01-01", "type": "cybersecurity"}
+      ],
+      "localization": {"level": "none", "notes": "No localization. Separate from mainland PIPL regime but listed as a country of concern under the US DOJ rule."},
+      "transfer_regime": "free",
+      "regulator": "PCPD",
+      "risk_flags": ["us_doj_country_of_concern"],
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=HK"
+    },
+    {
+      "iso2": "RU", "name": "Russia",
+      "laws": [
+        {"short": "152-FZ", "name": "Federal Law on Personal Data", "citation": "No. 152-FZ (2006)", "in_force": "2007", "type": "data_protection", "note": "Since 1 Mar 2023 cross-border transfers require prior notification to Roskomnadzor."},
+        {"short": "242-FZ", "name": "Data Localization Law", "citation": "No. 242-FZ (2014)", "in_force": "2015-09-01", "type": "localization", "note": "Recording, systematisation, storage of Russian citizens' PD must use databases located in Russia. Amendments from 1 Jul 2025 tightened this further."},
+        {"short": "90-FZ", "name": "Sovereign Internet Law", "citation": "No. 90-FZ (2019)", "in_force": "2019-11-01", "type": "internet_governance", "note": "Mandates DPI (TSPU) equipment at ISPs; traffic may be filtered or rerouted."},
+        {"short": "374-FZ", "name": "Yarovaya Law", "citation": "No. 374-FZ (2016)", "in_force": "2018-07-01", "type": "surveillance", "note": "Telecoms must store communications content and metadata locally."}
+      ],
+      "localization": {"level": "strict", "notes": "Primary database for Russian citizens' PD must be in Russia."},
+      "transfer_regime": "restricted",
+      "regulator": "Roskomnadzor",
+      "risk_flags": ["us_doj_country_of_concern", "state_dpi_interception", "sanctions"],
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=RU"
+    },
+    {
+      "iso2": "IN", "name": "India",
+      "laws": [
+        {"short": "DPDP Act", "name": "Digital Personal Data Protection Act, 2023", "citation": "Act No. 22 of 2023", "in_force": "2025-11-14 (Rules notified; phased to ~May 2027)", "type": "data_protection", "note": "s.16: transfers allowed except to countries the government blacklists (none listed yet). Rules let the government require some significant data fiduciaries to keep specified data in India."},
+        {"short": "RBI Payment Data", "name": "RBI Storage of Payment System Data", "citation": "RBI/2017-18/153 (6 Apr 2018)", "in_force": "2018-10-15", "type": "localization", "note": "Entire payment data stored only in India; foreign processing allowed if returned within 24h."},
+        {"short": "CERT-In Directions", "name": "CERT-In Directions under s.70B(6) IT Act", "citation": "No. 20(3)/2022-CERT-In", "in_force": "2022-06-28", "type": "cybersecurity", "note": "6-hour incident reporting; 180-day log retention within Indian jurisdiction."},
+        {"short": "IT Act", "name": "Information Technology Act, 2000", "citation": "Act No. 21 of 2000", "in_force": "2000", "type": "cybersecurity"}
+      ],
+      "localization": {"level": "sectoral", "notes": "Payments (RBI), insurance (IRDAI), telecom subscriber data (DoT licence), public sector cloud (MeitY empanelment)."},
+      "transfer_regime": "free",
+      "regulator": "Data Protection Board of India; RBI; CERT-In",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=IN"
+    },
+    {
+      "iso2": "VN", "name": "Vietnam",
+      "laws": [
+        {"short": "PDPL", "name": "Law on Personal Data Protection", "citation": "Law No. 91/2025/QH15", "in_force": "2026-01-01", "type": "data_protection", "note": "Fines up to 5% of prior-year revenue for unlawful cross-border transfer; transfer impact assessment filing with A05 (Ministry of Public Security)."},
+        {"short": "Cybersecurity Law", "name": "Law on Cybersecurity", "citation": "Law No. 24/2018/QH14", "in_force": "2019-01-01", "type": "cybersecurity"},
+        {"short": "Decree 53", "name": "Decree 53/2022/ND-CP", "citation": "Decree 53/2022", "in_force": "2022-10-01", "type": "localization", "note": "Domestic and some foreign service providers must store specified user data in Vietnam."}
+      ],
+      "localization": {"level": "strict", "notes": "Data localization for certain user data plus mandatory transfer impact assessment."},
+      "transfer_regime": "approval_or_assessment",
+      "regulator": "Ministry of Public Security (A05)",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=VN"
+    },
+    {
+      "iso2": "ID", "name": "Indonesia",
+      "laws": [
+        {"short": "PDP Law", "name": "Personal Data Protection Law", "citation": "Law No. 27 of 2022", "in_force": "2024-10-17", "type": "data_protection"},
+        {"short": "GR 71/2019", "name": "Government Regulation on Electronic Systems and Transactions", "citation": "GR 71/2019", "in_force": "2019-10-10", "type": "localization", "note": "Public-scope electronic system operators must process and store data in Indonesia (exceptions if technology unavailable)."}
+      ],
+      "localization": {"level": "conditional", "notes": "Public sector strict; private sector may store abroad if supervisory access is ensured. Financial sector (OJK/BI) has separate rules."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "Kominfo/Komdigi; PDP Agency (pending)",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=ID"
+    },
+    {
+      "iso2": "SA", "name": "Saudi Arabia",
+      "laws": [
+        {"short": "PDPL", "name": "Personal Data Protection Law", "citation": "Royal Decree M/19 (2021), amended M/148 (2023)", "in_force": "2023-09-14", "type": "data_protection"},
+        {"short": "Transfer Regs", "name": "Regulation on Personal Data Transfer outside the Kingdom", "citation": "SDAIA 2023, amended 2024", "in_force": "2023-09-14", "type": "transfer_rules"},
+        {"short": "NCA CCC", "name": "NCA Cloud Cybersecurity Controls", "citation": "CCC-2:2024", "in_force": "2020", "type": "cybersecurity", "note": "Government and CNI data hosted in-Kingdom."}
+      ],
+      "localization": {"level": "conditional", "notes": "Government/sensitive and critical-infrastructure data must stay in KSA."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "SDAIA; NCA",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=SA"
+    },
+    {
+      "iso2": "AE", "name": "United Arab Emirates",
+      "laws": [
+        {"short": "PDPL", "name": "Federal Decree-Law on the Protection of Personal Data", "citation": "Federal Decree-Law No. 45 of 2021", "in_force": "2022-01-02", "type": "data_protection", "note": "Executive regulations still pending; free zones (DIFC Law 5/2020, ADGM DPR 2021) have their own regimes."},
+        {"short": "Health Data Law", "name": "Use of ICT in Health Fields", "citation": "Federal Law No. 2 of 2019", "in_force": "2019", "type": "localization", "note": "Health data must be stored in the UAE unless exempted."}
+      ],
+      "localization": {"level": "sectoral", "notes": "Health data localized; telecom and government sectors via TDRA rules."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "UAE Data Office; DIFC Commissioner; ADGM ODP",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=AE"
+    },
+    {
+      "iso2": "TR", "name": "Turkey",
+      "laws": [{"short": "KVKK", "name": "Law on the Protection of Personal Data", "citation": "Law No. 6698", "in_force": "2016-04-07", "type": "data_protection", "note": "Art. 9 transfer rules overhauled by Law 7499 (in force 1 Jun 2024): adequacy, standard contracts notified to the Authority within 5 days, BCRs."}],
+      "localization": {"level": "sectoral", "notes": "Banking (BRSA) and payment data localized."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "KVKK Authority",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=TR"
+    },
+    {
+      "iso2": "JP", "name": "Japan",
+      "laws": [{"short": "APPI", "name": "Act on the Protection of Personal Information", "citation": "Act No. 57 of 2003 (amended 2020/2021)", "in_force": "2022-04-01 (amendments)", "type": "data_protection"},
+               {"short": "Active Cyber Defense Act", "name": "Act on Active Cyber Defense", "citation": "2025", "in_force": "phased 2026-2027", "type": "cybersecurity"}],
+      "localization": {"level": "none", "notes": "Transfers need consent with information about the destination regime, or equivalent-measures/whitelist (EEA, UK)."},
+      "transfer_regime": "adequacy_or_safeguards", "eu_adequacy": "yes",
+      "regulator": "PPC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=JP"
+    },
+    {
+      "iso2": "KR", "name": "South Korea",
+      "laws": [{"short": "PIPA", "name": "Personal Information Protection Act", "citation": "Act No. 10465 (amended 2023)", "in_force": "2023-09-15 (amendments)", "type": "data_protection"}],
+      "localization": {"level": "sectoral", "notes": "Map/geospatial data export restricted; financial cloud rules."},
+      "transfer_regime": "adequacy_or_safeguards", "eu_adequacy": "yes",
+      "regulator": "PIPC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=KR"
+    },
+    {
+      "iso2": "SG", "name": "Singapore",
+      "laws": [{"short": "PDPA", "name": "Personal Data Protection Act 2012", "citation": "Act 26 of 2012", "in_force": "2014-07-02", "type": "data_protection"},
+               {"short": "Cybersecurity Act", "name": "Cybersecurity Act 2018 (amended 2024)", "citation": "Act 9 of 2018", "in_force": "2018-08-31", "type": "cybersecurity"}],
+      "localization": {"level": "none", "notes": "Transfer limitation obligation: recipient must give comparable protection."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "PDPC; CSA",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=SG"
+    },
+    {
+      "iso2": "AU", "name": "Australia",
+      "laws": [{"short": "Privacy Act", "name": "Privacy Act 1988 (amended by Privacy and Other Legislation Amendment Act 2024)", "citation": "Act No. 119 of 1988", "in_force": "1988", "type": "data_protection", "note": "APP 8 cross-border disclosure accountability."},
+               {"short": "MHR Act s77", "name": "My Health Records Act 2012", "citation": "s.77", "in_force": "2012", "type": "localization", "note": "My Health Record data must not be held or processed outside Australia."},
+               {"short": "SOCI Act", "name": "Security of Critical Infrastructure Act 2018", "citation": "Act No. 29 of 2018", "in_force": "2018", "type": "cybersecurity"},
+               {"short": "Cyber Security Act", "name": "Cyber Security Act 2024", "citation": "Act No. 98 of 2024", "in_force": "2025-05-30", "type": "cybersecurity"}],
+      "localization": {"level": "sectoral", "notes": "Health records; government data under Hosting Certification Framework."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "OAIC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=AU"
+    },
+    {
+      "iso2": "NZ", "name": "New Zealand",
+      "laws": [{"short": "Privacy Act 2020", "name": "Privacy Act 2020", "citation": "2020 No 31", "in_force": "2020-12-01", "type": "data_protection"}],
+      "localization": {"level": "none", "notes": "IPP 12 cross-border disclosure rules."},
+      "transfer_regime": "adequacy_or_safeguards", "eu_adequacy": "yes",
+      "regulator": "Office of the Privacy Commissioner",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=NZ"
+    },
+    {
+      "iso2": "ZA", "name": "South Africa",
+      "laws": [{"short": "POPIA", "name": "Protection of Personal Information Act", "citation": "Act 4 of 2013", "in_force": "2021-07-01", "type": "data_protection", "note": "s.72 transfer conditions."},
+               {"short": "Cybercrimes Act", "name": "Cybercrimes Act", "citation": "Act 19 of 2020", "in_force": "2021-12-01", "type": "cybersecurity"}],
+      "localization": {"level": "none", "notes": "Draft national data and cloud policy proposed localization of some data; not in force."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "Information Regulator",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=ZA"
+    },
+    {
+      "iso2": "NG", "name": "Nigeria",
+      "laws": [{"short": "NDPA", "name": "Nigeria Data Protection Act 2023", "citation": "NDPA 2023", "in_force": "2023-06-12", "type": "data_protection", "note": "GAID 2025 implementation directive in force Sept 2025."},
+               {"short": "NITDA Guidelines", "name": "Guidelines for Nigerian Content Development in ICT", "citation": "NITDA 2013/2019", "in_force": "2013", "type": "localization", "note": "Government data and certain sovereign data hosted locally."}],
+      "localization": {"level": "conditional", "notes": "Public-sector/sovereign data localized."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "NDPC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=NG"
+    },
+    {
+      "iso2": "KE", "name": "Kenya",
+      "laws": [{"short": "DPA 2019", "name": "Data Protection Act 2019", "citation": "No. 24 of 2019", "in_force": "2019-11-25", "type": "data_protection", "note": "Data Protection (General) Regulations 2021 require processing for 'strategic interest of the state' (e.g. elections, revenue, public health) to be done via a server and data centre in Kenya."}],
+      "localization": {"level": "conditional", "notes": "Strategic-interest data localized."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "ODPC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=KE"
+    },
+    {
+      "iso2": "EG", "name": "Egypt",
+      "laws": [{"short": "PDPL", "name": "Personal Data Protection Law", "citation": "Law No. 151 of 2020", "in_force": "2020-10-15", "type": "data_protection", "note": "Cross-border transfers require a licence/permit from the PDP Centre. VERIFY: status/date of the executive regulations was not confirmed during research."}],
+      "localization": {"level": "conditional", "notes": "Transfers need PDPC licence."},
+      "transfer_regime": "approval_or_assessment",
+      "regulator": "Personal Data Protection Centre",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=EG"
+    },
+    {
+      "iso2": "IL", "name": "Israel",
+      "laws": [{"short": "PPL", "name": "Protection of Privacy Law, 5741-1981 (Amendment 13)", "citation": "PPL Amendment 13", "in_force": "2025-08-14", "type": "data_protection"}],
+      "localization": {"level": "none", "notes": "Transfer regulations 2001; EU data transfer regulations 2023."},
+      "transfer_regime": "adequacy_or_safeguards", "eu_adequacy": "yes",
+      "regulator": "Privacy Protection Authority",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=IL"
+    },
+    {
+      "iso2": "KZ", "name": "Kazakhstan",
+      "laws": [{"short": "PD Law", "name": "Law on Personal Data and its Protection", "citation": "No. 94-V (2013)", "in_force": "2013-11-25", "type": "data_protection", "note": "Art. 12(2): personal data must be stored in a database located in Kazakhstan."}],
+      "localization": {"level": "strict", "notes": "Local storage required; transfers allowed if the destination protects data."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "Ministry of Digital Development",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=KZ"
+    },
+    {
+      "iso2": "BY", "name": "Belarus",
+      "laws": [{"short": "PD Law", "name": "Law on Personal Data Protection", "citation": "No. 99-Z (2021)", "in_force": "2021-11-15", "type": "data_protection"},
+               {"short": "Edict 60", "name": "Presidential Edict No. 60 on Improving Use of the National Internet Segment", "citation": "Edict 60 (2010)", "in_force": "2010", "type": "localization", "note": "Online services to Belarusian users hosted in Belarus."}],
+      "localization": {"level": "strict", "notes": ""},
+      "transfer_regime": "restricted",
+      "regulator": "National Personal Data Protection Center",
+      "risk_flags": ["sanctions"],
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=BY"
+    },
+    {
+      "iso2": "IR", "name": "Iran",
+      "laws": [{"short": "Computer Crimes Law", "name": "Computer Crimes Law", "citation": "2009", "in_force": "2009", "type": "cybersecurity"},
+               {"short": "NIN", "name": "National Information Network policies", "citation": "Supreme Council of Cyberspace", "in_force": "ongoing", "type": "internet_governance", "note": "State filtering and frequent shutdowns."}],
+      "localization": {"level": "strict", "notes": "No comprehensive data protection law; state-controlled national network."},
+      "transfer_regime": "restricted",
+      "risk_flags": ["us_doj_country_of_concern", "sanctions", "state_dpi_interception"],
+      "dla_piper_url": null
+    },
+    {
+      "iso2": "KP", "name": "North Korea",
+      "laws": [],
+      "localization": {"level": "strict", "notes": "No public internet transit expected; any hop here is anomalous."},
+      "transfer_regime": "restricted",
+      "risk_flags": ["us_doj_country_of_concern", "sanctions"],
+      "dla_piper_url": null
+    },
+    {
+      "iso2": "CU", "name": "Cuba",
+      "laws": [{"short": "Law 149", "name": "Law on Personal Data Protection", "citation": "Ley 149/2022", "in_force": "2022", "type": "data_protection"}],
+      "localization": {"level": "conditional", "notes": ""},
+      "transfer_regime": "restricted",
+      "risk_flags": ["us_doj_country_of_concern", "sanctions"],
+      "dla_piper_url": null
+    },
+    {
+      "iso2": "VE", "name": "Venezuela",
+      "laws": [],
+      "localization": {"level": "none", "notes": "No comprehensive data protection law (constitutional habeas data only)."},
+      "transfer_regime": "free",
+      "risk_flags": ["us_doj_country_of_concern", "sanctions"],
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=VE"
+    },
+    {
+      "iso2": "MX", "name": "Mexico",
+      "laws": [{"short": "LFPDPPP", "name": "Federal Law on Protection of Personal Data Held by Private Parties (2025)", "citation": "DOF 20 Mar 2025", "in_force": "2025-03-21", "type": "data_protection", "note": "Replaced 2010 law; INAI dissolved, oversight moved to the Secretariat for Anti-Corruption and Good Governance."}],
+      "localization": {"level": "none", "notes": ""},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "Secretaría Anticorrupción y Buen Gobierno",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=MX"
+    },
+    {
+      "iso2": "AR", "name": "Argentina",
+      "laws": [{"short": "PDPL", "name": "Personal Data Protection Law", "citation": "Law 25.326", "in_force": "2000", "type": "data_protection"}],
+      "localization": {"level": "none", "notes": ""},
+      "transfer_regime": "adequacy_or_safeguards", "eu_adequacy": "yes",
+      "regulator": "AAIP",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=AR"
+    },
+    {
+      "iso2": "CL", "name": "Chile",
+      "laws": [{"short": "Law 21.719", "name": "Personal Data Protection Law", "citation": "Ley 21.719", "in_force": "2026-12-01", "type": "data_protection", "note": "GDPR-style law; creates a Data Protection Agency."},
+               {"short": "Law 21.663", "name": "Framework Law on Cybersecurity", "citation": "Ley 21.663", "in_force": "2025-03-01", "type": "cybersecurity"}],
+      "localization": {"level": "none", "notes": ""},
+      "transfer_regime": "adequacy_or_safeguards",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=CL"
+    },
+    {
+      "iso2": "TH", "name": "Thailand",
+      "laws": [{"short": "PDPA", "name": "Personal Data Protection Act B.E. 2562", "citation": "2019", "in_force": "2022-06-01", "type": "data_protection"},
+               {"short": "CSA", "name": "Cybersecurity Act B.E. 2562", "citation": "2019", "in_force": "2019-05-27", "type": "cybersecurity"}],
+      "localization": {"level": "none", "notes": "Cross-border rules by PDPC notifications (2023)."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "regulator": "PDPC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=TH"
+    },
+    {
+      "iso2": "MY", "name": "Malaysia",
+      "laws": [{"short": "PDPA", "name": "Personal Data Protection Act 2010 (amended 2024)", "citation": "Act 709; Act A1727", "in_force": "2025 (amendments phased)", "type": "data_protection", "note": "Whitelist removed; transfers allowed where destination law is substantially similar or adequate."},
+               {"short": "Cyber Security Act", "name": "Cyber Security Act 2024", "citation": "Act 854", "in_force": "2024-08-26", "type": "cybersecurity"}],
+      "localization": {"level": "sectoral", "notes": "Financial sector (BNM RMiT) requires approval for offshore critical systems."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=MY"
+    },
+    {
+      "iso2": "PH", "name": "Philippines",
+      "laws": [{"short": "DPA", "name": "Data Privacy Act of 2012", "citation": "RA 10173", "in_force": "2012", "type": "data_protection"}],
+      "localization": {"level": "none", "notes": "Accountability principle for transfers."},
+      "transfer_regime": "free",
+      "regulator": "NPC",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=PH"
+    },
+    {
+      "iso2": "PK", "name": "Pakistan",
+      "laws": [{"short": "PECA", "name": "Prevention of Electronic Crimes Act 2016 (amended 2025)", "citation": "Act XL of 2016", "in_force": "2016", "type": "cybersecurity"}],
+      "localization": {"level": "conditional", "notes": "Personal Data Protection Bill still in draft; cloud policy restricts classified government data offshore."},
+      "transfer_regime": "free",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=PK"
+    },
+    {
+      "iso2": "QA", "name": "Qatar",
+      "laws": [{"short": "PDPPL", "name": "Personal Data Privacy Protection Law", "citation": "Law No. 13 of 2016", "in_force": "2017", "type": "data_protection"}],
+      "localization": {"level": "sectoral", "notes": "Government cloud policy."},
+      "transfer_regime": "adequacy_or_safeguards",
+      "dla_piper_url": "https://www.dlapiperdataprotection.com/?t=law&c=QA"
+    }
+  ]
+}

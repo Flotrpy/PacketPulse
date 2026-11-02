@@ -1,0 +1,5 @@
+data/raw/dbip/
+data/raw/maxmind/
+data/raw/ipinfo/
+data/raw/opencellid/
+__pycache__/

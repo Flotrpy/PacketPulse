@@ -1,0 +1,173 @@
+{
+  "_comment": "Worked example. Infrastructure IDs are real values from the research snapshot: TeleGeography cable ids/landing ids, PeeringDB ix ids, AWS eu-central-1 prefix, Jio MCC/MNC 405/874, Tata hostnames geolocated by the live CAIDA Hoiho API. IP-to-ASN mappings were checked against iptoasn. RTT values are illustrative.",
+  "journey_id": "5f0c7f0e-6a59-4c1e-9f55-3b1f2f6d9a10",
+  "schema_version": "1.0.0",
+  "created_at": "2026-11-02T13:05:12Z",
+  "probe": {
+    "probe_id": "agent-android-7f3a",
+    "agent_version": "0.1.0",
+    "method": "paris-traceroute-udp",
+    "ip_version": 4,
+    "packets_per_hop": 3,
+    "started_at": "2026-11-02T13:05:01Z",
+    "finished_at": "2026-11-02T13:05:11Z"
+  },
+  "flow": {
+    "five_tuple": {"src_ip": "100.72.14.9", "dst_ip": "18.96.32.10", "src_port": 51544, "dst_port": 443, "protocol": "tcp"},
+    "sni": "payments-api.example-merchant.in",
+    "app_label": "payments-api",
+    "bytes": 48213,
+    "packets": 61,
+    "data_classification": "payment",
+    "policy_id": "in-rbi-payments"
+  },
+  "source": {
+    "ip": "100.72.14.9",
+    "access": {
+      "access_type": "cellular_5g_sa",
+      "mcc": "405",
+      "mnc": "874",
+      "operator": "Reliance Jio Infocomm (Jio Mumbai)",
+      "serving_cell": {
+        "radio": "NR",
+        "tac_or_lac": 41021,
+        "cell_id": 6198243329,
+        "tower_location": {"lat": 19.0596, "lon": 72.8295, "accuracy_km": 0.6, "city": "Mumbai", "country_iso2": "IN"}
+      },
+      "cgnat_detected": true,
+      "packet_gateway": {
+        "egress_ip": "49.36.0.1",
+        "asn": 55836,
+        "location": {"lat": 19.0330, "lon": 73.0297, "accuracy_km": 25, "city": "Navi Mumbai", "country_iso2": "IN"},
+        "evidence": [
+          {"source": "iptoasn", "value": {"asn": 55836, "name": "RELIANCEJIO-IN"}, "confidence": 0.99},
+          {"source": "device_telephony", "value": {"mcc": "405", "mnc": "874"}, "confidence": 0.95},
+          {"source": "rtt_constraint", "value": {"max_km_from_device": 120}, "confidence": 0.8}
+        ]
+      }
+    },
+    "location": {"lat": 19.0596, "lon": 72.8295, "accuracy_km": 0.6, "city": "Mumbai", "country_iso2": "IN"}
+  },
+  "destination": {
+    "ip": "18.96.32.10",
+    "asn": 16509,
+    "as_org": "Amazon.com, Inc.",
+    "cloud": {"provider": "aws", "region": "eu-central-1", "service": "EC2", "matched_prefix": "18.96.32.0/19"},
+    "location": {"lat": 50.1109, "lon": 8.6821, "accuracy_km": 50, "city": "Frankfurt am Main", "country_iso2": "DE"}
+  },
+  "hops": [
+    {"ttl": 1, "responded": true, "ip": "100.72.0.1", "is_private": true, "role": "mno_core",
+     "rtt_ms": {"min": 9.8, "avg": 14.2, "max": 21.0, "stdev": 4.6, "samples": 3}, "loss_pct": 0,
+     "location_method": "interpolated", "location": {"lat": 19.0596, "lon": 72.8295, "accuracy_km": 30, "country_iso2": "IN"}},
+    {"ttl": 2, "responded": false},
+    {"ttl": 3, "responded": true, "ip": "49.36.0.1", "role": "mno_gateway", "asn": 55836, "as_org": "Reliance Jio Infocomm Limited", "registry_country": "IN",
+     "rtt_ms": {"min": 18.1, "avg": 19.4, "max": 21.2, "stdev": 1.3, "samples": 3}, "loss_pct": 0,
+     "location": {"lat": 19.0330, "lon": 73.0297, "accuracy_km": 25, "city": "Navi Mumbai", "country_iso2": "IN"}, "location_method": "commercial_db"},
+    {"ttl": 4, "responded": true, "ip": "180.87.38.1", "rdns": "if-ae-2-2.tcore1.mlv-mumbai.as6453.net", "role": "backbone",
+     "asn": 6453, "as_org": "Tata Communications", "registry_country": "US",
+     "rtt_ms": {"min": 19.6, "avg": 20.3, "max": 21.4, "stdev": 0.7, "samples": 3}, "loss_pct": 0,
+     "location": {"lat": 19.07283, "lon": 72.88261, "accuracy_km": 20, "city": "Mumbai", "country_iso2": "IN"}, "location_method": "hoiho_rdns",
+     "evidence": [
+       {"source": "hoiho_rdns", "value": {"place": "Mumbai", "cc": "IN"}, "confidence": 0.9, "dataset_version": "hoiho-2024-08"},
+       {"source": "iptoasn", "value": {"asn": 6453, "cc": "US"}, "confidence": 0.99},
+       {"source": "rtt_constraint", "value": {"consistent": true}, "confidence": 0.9}
+     ]},
+    {"ttl": 5, "responded": true, "ip": "80.231.200.1", "rdns": "if-be-2-2.ecore1.emrs2-marseille.as6453.net", "role": "landing_station",
+     "asn": 6453, "as_org": "Tata Communications", "registry_country": "US",
+     "rtt_ms": {"min": 112.4, "avg": 113.9, "max": 118.8, "stdev": 2.9, "samples": 3}, "loss_pct": 0,
+     "mpls_labels": [24021],
+     "location": {"lat": 43.29695, "lon": 5.38107, "accuracy_km": 20, "city": "Marseille", "country_iso2": "FR"}, "location_method": "hoiho_rdns",
+     "evidence": [
+       {"source": "hoiho_rdns", "value": {"place": "Marseille", "cc": "FR"}, "confidence": 0.9, "dataset_version": "hoiho-2024-08"},
+       {"source": "rtt_constraint", "value": {"min_feasible_rtt_ms": 66.3, "observed_delta_ms": 92.8, "consistent": true}, "confidence": 0.85}
+     ]},
+    {"ttl": 6, "responded": true, "ip": "80.231.153.1", "role": "backbone", "asn": 6453, "as_org": "Tata Communications", "registry_country": "US",
+     "rtt_ms": {"min": 121.0, "avg": 128.7, "max": 141.5, "stdev": 8.4, "samples": 3}, "loss_pct": 0,
+     "location": {"lat": 48.85341, "lon": 2.3488, "accuracy_km": 50, "city": "Paris", "country_iso2": "FR"}, "location_method": "ripe_ipmap",
+     "evidence": [{"source": "ripe_ipmap", "value": {"city": "Paris", "iata": "PAR"}, "confidence": 0.8}]},
+    {"ttl": 7, "responded": true, "ip": "52.93.0.1", "role": "cloud_edge", "asn": 16509, "as_org": "Amazon.com, Inc.", "registry_country": "US",
+     "rtt_ms": {"min": 127.9, "avg": 129.2, "max": 131.0, "stdev": 1.3, "samples": 3}, "loss_pct": 0,
+     "ixp": {"peeringdb_ix_id": 31, "name": "DE-CIX Frankfurt", "city": "Frankfurt"},
+     "location": {"lat": 50.1109, "lon": 8.6821, "accuracy_km": 30, "city": "Frankfurt am Main", "country_iso2": "DE"}, "location_method": "ixp_prefix"},
+    {"ttl": 8, "responded": true, "ip": "18.96.32.10", "role": "destination", "asn": 16509, "registry_country": "US",
+     "rtt_ms": {"min": 128.6, "avg": 129.9, "max": 132.2, "stdev": 1.5, "samples": 3}, "loss_pct": 0,
+     "location": {"lat": 50.1109, "lon": 8.6821, "accuracy_km": 50, "city": "Frankfurt am Main", "country_iso2": "DE"}, "location_method": "commercial_db",
+     "evidence": [{"source": "cloud_ranges", "value": {"provider": "aws", "region": "eu-central-1"}, "confidence": 0.98}]}
+  ],
+  "segments": [
+    {"from_ttl": 0, "to_ttl": 1, "medium": "cellular_ran", "operator_asn": 55836, "operator_name": "Jio",
+     "great_circle_km": 0.5, "delta_rtt_ms": 9.8, "health": {"status": "green", "jitter_ms": 4.6, "loss_pct": 0}},
+    {"from_ttl": 1, "to_ttl": 3, "medium": "mno_backhaul", "operator_asn": 55836, "operator_name": "Jio",
+     "great_circle_km": 20.1, "delta_rtt_ms": 8.3, "health": {"status": "green", "jitter_ms": 1.3, "loss_pct": 0}},
+    {"from_ttl": 3, "to_ttl": 4, "medium": "metro_fiber", "operator_asn": 6453, "operator_name": "Tata Communications",
+     "great_circle_km": 16.1, "delta_rtt_ms": 1.5, "health": {"status": "green", "jitter_ms": 0.7, "loss_pct": 0},
+     "jurisdictions_crossed": [{"iso2": "IN", "kind": "land", "confidence": 0.95}]},
+    {"from_ttl": 4, "to_ttl": 5, "medium": "subsea_cable", "operator_asn": 6453, "operator_name": "Tata Communications",
+     "great_circle_km": 6764.7, "delta_rtt_ms": 92.8, "min_feasible_rtt_ms": 66.3,
+     "health": {"status": "green", "latency_excess_ratio": 1.40, "jitter_ms": 2.9, "loss_pct": 0},
+     "subsea": {
+       "candidates": [
+         {"cable_id": "imewe", "name": "IMEWE", "probability": 0.48, "landing_a": "mumbai-india", "landing_b": "marseille-france", "owner_match": true, "rtt_fit": 0.86, "rfs_year": 2010},
+         {"cable_id": "seamewe-4", "name": "SeaMeWe-4", "probability": 0.37, "landing_a": "mumbai-india", "landing_b": "marseille-france", "owner_match": true, "rtt_fit": 0.81, "rfs_year": 2005},
+         {"cable_id": "2africa", "name": "2Africa", "probability": 0.10, "landing_a": "mumbai-india", "landing_b": "marseille-france", "owner_match": false, "rtt_fit": 0.55, "rfs_year": 2024},
+         {"cable_id": "asia-africa-europe-1-aae-1", "name": "Asia Africa Europe-1 (AAE-1)", "probability": 0.05, "landing_a": "mumbai-india", "landing_b": "marseille-france", "owner_match": false, "rtt_fit": 0.7, "rfs_year": 2017}
+       ],
+       "selected_cable_id": "imewe"
+     },
+     "jurisdictions_crossed": [
+       {"iso2": "IN", "kind": "landing_station", "confidence": 0.95},
+       {"iso2": "PK", "kind": "landing_station", "confidence": 0.5},
+       {"iso2": "SA", "kind": "eez", "confidence": 0.6},
+       {"iso2": "EG", "kind": "land", "confidence": 0.85},
+       {"iso2": "IT", "kind": "eez", "confidence": 0.4},
+       {"iso2": "FR", "kind": "landing_station", "confidence": 0.95}
+     ]},
+    {"from_ttl": 5, "to_ttl": 6, "medium": "terrestrial_fiber", "operator_asn": 6453, "operator_name": "Tata Communications",
+     "great_circle_km": 660.0, "delta_rtt_ms": 8.6, "health": {"status": "amber", "latency_excess_ratio": 1.33, "jitter_ms": 8.4, "loss_pct": 0},
+     "terrestrial": {"backbone_asn": 6453, "route_source": "great_circle_estimate"},
+     "jurisdictions_crossed": [{"iso2": "FR", "kind": "land", "confidence": 0.95}]},
+    {"from_ttl": 6, "to_ttl": 7, "medium": "ixp_fabric", "operator_name": "DE-CIX Frankfurt",
+     "great_circle_km": 479.0, "delta_rtt_ms": 6.9, "health": {"status": "green", "jitter_ms": 1.3, "loss_pct": 0},
+     "jurisdictions_crossed": [{"iso2": "FR", "kind": "land", "confidence": 0.9}, {"iso2": "DE", "kind": "land", "confidence": 0.95}]},
+    {"from_ttl": 7, "to_ttl": 8, "medium": "cloud_backbone", "operator_asn": 16509, "operator_name": "AWS",
+     "great_circle_km": 5.0, "delta_rtt_ms": 0.7, "health": {"status": "green", "jitter_ms": 1.5, "loss_pct": 0},
+     "jurisdictions_crossed": [{"iso2": "DE", "kind": "land", "confidence": 0.95}]}
+  ],
+  "compliance": {
+    "policy_id": "in-rbi-payments",
+    "data_classification": "payment",
+    "verdict": "violation",
+    "alerts": [
+      {"alert_id": "a-1", "severity": "warning", "rule": "transit_outside_allowed_zone", "iso2": "EG", "segment_index": 3,
+       "message": "Payment data transits Egypt (Suez terrestrial crossing of the Mumbai-Marseille cable route).", "law_refs": ["RBI Payment Data"], "location_confidence": 0.85},
+      {"alert_id": "a-2", "severity": "critical", "rule": "destination_outside_allowed_zone", "iso2": "DE", "at_ttl": 8,
+       "message": "Payment data terminates in AWS eu-central-1 (Frankfurt, DE). RBI requires storage only in India; processing abroad must be deleted and returned within 24h.",
+       "law_refs": ["RBI Payment Data", "GDPR"], "location_confidence": 0.98}
+    ],
+    "jurisdictions_touched": [
+      {"iso2": "IN", "zones": [], "role": "source", "localization_level": "sectoral", "law_refs": ["DPDP Act", "RBI Payment Data", "CERT-In Directions"]},
+      {"iso2": "EG", "zones": [], "role": "transit", "localization_level": "conditional", "law_refs": ["PDPL"]},
+      {"iso2": "FR", "zones": ["EU", "EEA"], "role": "cable_landing", "localization_level": "none", "law_refs": ["GDPR", "NIS2"]},
+      {"iso2": "DE", "zones": ["EU", "EEA"], "role": "destination", "localization_level": "none", "law_refs": ["GDPR", "NIS2", "Data Act"]},
+      {"iso2": "US", "zones": ["GDPR_ADEQUATE"], "role": "corporate_control", "localization_level": "sectoral", "law_refs": ["CLOUD Act"]}
+    ]
+  },
+  "summary": {
+    "end_to_end_rtt_ms": 128.6,
+    "hop_count": 8,
+    "unresponsive_hops": 1,
+    "path_km": 7940,
+    "asn_path": [55836, 6453, 16509],
+    "countries_path": ["IN", "EG", "FR", "DE"],
+    "media": ["cellular_ran", "mno_backhaul", "metro_fiber", "subsea_cable", "terrestrial_fiber", "ixp_fabric", "cloud_backbone"],
+    "overall_health": "amber"
+  },
+  "dataset_versions": {
+    "telegeography": "api-v3@2026-11-02",
+    "peeringdb": "2026-11-02",
+    "caida_as_rel": "20261001",
+    "iptoasn": "2026-11-02",
+    "hoiho": "2024-08",
+    "regulations": "2026-11-02"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "description": "Jurisdiction groupings used by Business Mode to decide whether a hop is inside, adequate to, or outside a policy boundary. Country codes are ISO 3166-1 alpha-2 and match Natural Earth ISO_A2 (fall back to ISO_A2_EH / ADM0_A3 where ISO_A2 is -99, e.g. France, Norway, Kosovo).",
+  "as_of": "2026-11-02",
+  "zones": {
+    "EU": {
+      "label": "European Union (GDPR applies directly)",
+      "members": ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE"],
+      "source": "https://european-union.europa.eu/principles-countries-history/eu-countries_en"
+    },
+    "EEA": {
+      "label": "European Economic Area (GDPR incorporated via EEA Agreement)",
+      "members_extends": "EU",
+      "members_extra": ["IS","LI","NO"],
+      "source": "https://www.efta.int/eea"
+    },
+    "GDPR_ADEQUATE": {
+      "label": "Countries with an EU Commission adequacy decision (transfers allowed without extra safeguards)",
+      "members": ["AD","AR","BR","CA","FO","GG","IL","IM","JP","JE","NZ","KR","CH","GB","UY","US"],
+      "conditions": {
+        "CA": "Only organisations subject to PIPEDA (commercial activities).",
+        "US": "Only organisations self-certified under the EU-US Data Privacy Framework (check https://www.dataprivacyframework.gov/list). General Court upheld the DPF in Sept 2025 (Latombe, T-553/23); appeal and a July 2026 EDPB letter keep it under review.",
+        "GB": "Renewed Dec 2025 under GDPR and LED; runs to 27 Dec 2031.",
+        "BR": "Implementing Decision (EU) 2026/179 of 26 Jan 2026; reciprocal ANPD Resolution CD/ANPD 32/2026. Excludes public security/defence/criminal processing.",
+        "JP": "Covers private sector under APPI; extended to academia/public sector in 2023."
+      },
+      "also_adequate_non_country": ["European Patent Organisation (2025)"],
+      "source": "https://commission.europa.eu/law/law-topic/data-protection/international-dimension-data-protection/adequacy-decisions_en"
+    },
+    "UK_ADEQUATE": {
+      "label": "Countries covered by UK adequacy regulations ('data bridges')",
+      "members_extends": "EEA",
+      "members_extra": ["AD","AR","CA","FO","GG","IL","IM","JP","JE","NZ","KR","CH","UY","US"],
+      "conditions": {"US": "Only via the UK Extension to the EU-US DPF."},
+      "source": "https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/international-transfers/"
+    },
+    "US_DOJ_COUNTRIES_OF_CONCERN": {
+      "label": "Countries of concern under the US DOJ Bulk Sensitive Data Rule (28 CFR Part 202, effective 8 Apr 2025)",
+      "members": ["CN","HK","MO","CU","IR","KP","RU","VE"],
+      "source": "https://www.justice.gov/nsd/data-security"
+    },
+    "STRICT_LOCALIZATION": {
+      "label": "Jurisdictions with broad (non-sector) personal-data localization or mandatory local copy",
+      "members": ["RU","CN","VN","KZ","BY","ID","NG","SA"],
+      "notes": "Strength varies a lot. See jurisdictions.json localization.level and notes for each; ID, NG and SA are 'conditional' (public-sector / specific data classes), RU/CN/VN/KZ/BY are 'strict'.",
+      "source": "data/curated/regulations/jurisdictions.json"
+    }
+  },
+  "policy_templates": [
+    {
+      "id": "eu-gdpr-strict",
+      "label": "EU personal data – stay in EEA",
+      "allowed_zones": ["EEA"],
+      "transit_counts_as_transfer": false,
+      "notes": "Pure transit of encrypted packets is generally not treated as a 'transfer' under GDPR (EDPB Guidelines 05/2021 focus on making data available to a recipient). The app flags transit as RISK (warning) and storage/termination outside the zone as VIOLATION."
+    },
+    {
+      "id": "eu-gdpr-adequacy",
+      "label": "EU personal data – EEA + adequate countries",
+      "allowed_zones": ["EEA","GDPR_ADEQUATE"],
+      "transit_counts_as_transfer": false
+    },
+    {
+      "id": "us-doj-bulk",
+      "label": "US bulk sensitive data – avoid countries of concern",
+      "blocked_zones": ["US_DOJ_COUNTRIES_OF_CONCERN"],
+      "transit_counts_as_transfer": true,
+      "notes": "Conservative: flags any hop geolocated in a country of concern."
+    },
+    {
+      "id": "in-rbi-payments",
+      "label": "India payment system data – store only in India",
+      "allowed_zones_iso": ["IN"],
+      "transit_counts_as_transfer": false,
+      "notes": "RBI 2018 circular allows foreign processing if data is deleted abroad and returned to India within one business day / 24h."
+    },
+    {
+      "id": "ru-242fz",
+      "label": "Russian citizens' personal data – primary database in Russia",
+      "allowed_zones_iso": ["RU"],
+      "transit_counts_as_transfer": false
+    },
+    {
+      "id": "cn-important-data",
+      "label": "China important data / CIIO personal data – stay in mainland China",
+      "allowed_zones_iso": ["CN"],
+      "transit_counts_as_transfer": true,
+      "notes": "HK and MO are separate jurisdictions for PIPL cross-border purposes."
+    }
+  ]
+}
