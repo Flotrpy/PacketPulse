@@ -31,6 +31,21 @@ type Metadata struct {
 	Probe              ProbeConfig `json:"probe"`
 	ReachedDestination bool        `json:"reached_destination"`
 	DurationMS         float64     `json:"duration_ms"`
+	// DataClassification says which data classes this traffic carries, so
+	// downstream compliance engines know which sovereignty profiles apply.
+	DataClassification *DataClassification `json:"data_classification,omitempty"`
+}
+
+// DataClassification is assigned at ingestion from the request or from
+// classification rules. It never comes from payload inspection.
+type DataClassification struct {
+	Labels  []string `json:"labels"`
+	Source  string   `json:"source"` // request | rules | default | none
+	RuleIDs []string `json:"rule_ids,omitempty"`
+	// Flow context the rules were matched against (reported by the agent).
+	App  string `json:"app,omitempty"`
+	SNI  string `json:"sni,omitempty"`
+	Port int    `json:"port,omitempty"`
 }
 
 type Endpoint struct {

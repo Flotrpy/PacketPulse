@@ -45,7 +45,23 @@
           }
         },
         "reached_destination": {"type": "boolean"},
-        "duration_ms": {"type": "number", "minimum": 0}
+        "duration_ms": {"type": "number", "minimum": 0},
+        "data_classification": {"$ref": "#/$defs/DataClassification"}
+      }
+    },
+
+    "DataClassification": {
+      "description": "Data classes the traffic carries, assigned at ingestion from the request or from classification rules (never from payload inspection). Compliance engines use the labels to pick the sovereignty profiles that govern the traffic.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["labels", "source"],
+      "properties": {
+        "labels": {"type": "array", "uniqueItems": true, "maxItems": 16, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_]{1,63}$"}},
+        "source": {"enum": ["request", "rules", "default", "none"], "description": "request = labels sent with the trace request; rules = matched classification rules; default = rule set default; none = untagged."},
+        "rule_ids": {"type": "array", "items": {"type": "string"}},
+        "app": {"type": "string", "maxLength": 128, "description": "Application label reported by the agent."},
+        "sni": {"type": "string", "maxLength": 253, "description": "TLS server name of the flow."},
+        "port": {"type": "integer", "minimum": 0, "maximum": 65535}
       }
     },
 

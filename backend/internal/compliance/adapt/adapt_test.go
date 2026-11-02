@@ -9,6 +9,7 @@ import (
 
 	"github.com/flotrpy/packetpulse/backend/internal/compliance"
 	"github.com/flotrpy/packetpulse/backend/internal/enrich"
+	"github.com/flotrpy/packetpulse/backend/internal/model"
 )
 
 const ne = "../../../../data/raw/naturalearth/"
@@ -102,5 +103,35 @@ func TestEvaluateEnrichedTrace(t *testing.T) {
 	ev, _ = e.Evaluate(context.Background(), FromInfraMap(m, "pkt-pay", []string{"payment_system_data"}))
 	if len(ev.Alerts) != 1 || ev.Alerts[0].Territory.CountryISO2 != "DE" || ev.Alerts[0].Point.IP != "18.96.32.10" {
 		t.Fatalf("RBI: %+v", ev.Alerts)
+	}
+}
+
+func TestFromJourney(t *testing.T) {
+	b, err := os.ReadFile("../../../schema/examples/mumbai-jio-to-aws-frankfurt.journey.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var j model.Journey
+	if err := json.Unmarshal(b, &j); err != nil {
+		t.Fatal(err)
+	}
+	p := FromJourney(&j)
+	if p.PacketID != j.JourneyID || !slices.Equal(p.Classifications, []string{"payment_system_data"}) || p.Source != "ingestd" {
+		t.Fatalf("%+v", p)
+	}
+	var countries []string
+	for i, rp := range p.Route {
+		if rp.Seq != i || (i > 0 && rp.Timestamp.Before(p.Route[i-1].Timestamp)) {
+			t.Fatalf("route order at %d: %+v", i, rp)
+		}
+		if i > 0 && rp.Lat == p.Route[i-1].Lat && rp.Lon == p.Route[i-1].Lon {
+			t.Fatalf("duplicate point at %d", i)
+		}
+		if len(countries) == 0 || countries[len(countries)-1] != rp.CountryHint {
+			countries = append(countries, rp.CountryHint)
+		}
+	}
+	if p.Route[0].Kind != "source" || p.Route[len(p.Route)-1].Kind != "destination" || countries[0] != "IN" || countries[len(countries)-1] != "DE" {
+		t.Fatalf("route %v kinds %s..%s", countries, p.Route[0].Kind, p.Route[len(p.Route)-1].Kind)
 	}
 }
