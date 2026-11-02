@@ -60,6 +60,31 @@ sudo ./infraenrich -target 1.1.1.1 -mmdb-city GeoLite2-City.mmdb -mmdb-asn GeoLi
 
 `-record-geoip FILE` saves every GeoIP answer so a session can be replayed offline with `-geoip-static`.
 
+## Compliance engine (`internal/compliance`, `cmd/complianced`)
+
+An independent rule engine. Its core package imports nothing else from PacketPulse: it reads a `Packet` (classifications + ordered, timestamped route points) and returns an `Evaluation` with `ComplianceViolationAlert`s (`schema/compliance_alert.schema.json`; example: `schema/examples/gdpr-strict-paris-to-ashburn.evaluation.json`).
+
+| Piece | What it does |
+|---|---|
+| **Boundary registry** (`registry.go`, `defaults.go`) | Regions are unions of ISO countries, ISO 3166-2 subdivisions (state lines: `us-ca`) and/or custom GeoJSON polygons. Built in: `eu`, `eea` (GDPR territory), `schengen` (border area: includes CH, excludes IE/CY; *not* the GDPR boundary), `gdpr-adequate`, `us-ca`, `us`, `in`, `ru`, `cn-mainland`, `us-doj-concern`. Profiles bind data classifications to regions: `allow_list` or `deny_list` mode, `all_hops` (transit counts) or `destination_only` (storage rules), severity, minimum location confidence, law citation, mitigation template, and exceptions (e.g. adequacy = allow, US = downgrade pending DPF check). Seven profiles ship: GDPR Ch. V strict and adequacy-aware, CCPA/CPRA (informational: CCPA has no localisation rule), RBI payment data, 242-FZ, China DSL/PIPL, and the US DOJ bulk-data rule. |
+| **Locator** (`geo.go`) | Point-in-polygon on Natural Earth admin-0 and admin-1 with a 1° grid. Coastal points that fall just offshore at 1:50m snap to the coast within 50 km; points in open water belong to no territory. |
+| **Rule engine** (`engine.go`) | Walks the route once per matching profile and raises one alert per *entry* into a non-permitted territory. Re-entry after leaving raises a new alert; staying in the territory does not. Each alert carries the territory (country, subdivision, regions), the exact entry timestamp and how it was derived, the offending point (IP, ASN, operator), the last compliant point, the law (e.g. GDPR Chapter V), the rule text and a concrete mitigation. The mitigation names the nearest registered proxy *inside* the permitted territory, measured from the last compliant point (e.g. "Reroute via EU-isolated AWS eu-central-1 proxy…"). Points below the profile's location confidence give *suspected* alerts one severity lower. |
+| **Hot reload** | The registry is an immutable snapshot behind an atomic pointer. Evaluations are lock-free and see either the old or the new definitions, never a mix (race-tested). Updates are validated, written atomically to the store file, audited, then swapped in. No restart. |
+| **Adapter** (`adapt`) | `FromInfraMap` turns enrichment output into a route: device, accepted hops (timestamp = trace start + RTT/2), and subsea landing stations on the matched cable, weighted by how many candidate cables land in that country. On the Mumbai example, Egypt is firm (89%) and Saudi Arabia is suspected (23%: only SeaMeWe-4's stretch lands at Jeddah). |
+| **REST API** (`api`) | See the package doc. Admin mutations need a bearer token (`COMPLIANCE_ADMIN_TOKENS="actor:token"`); optimistic concurrency uses `ETag`/`If-Match` (412 on stale writes); `PATCH` is an RFC 7396 merge patch. Invalid definitions return 422, deleting an in-use region returns 409, and alerts stream over SSE. |
+
+```bash
+COMPLIANCE_ADMIN_TOKENS="alice:$(openssl rand -hex 24)" go run ./cmd/complianced -listen :8090 -store compliance-registry.json
+```
+
+```bash
+curl -XPATCH -H "Authorization: Bearer $TOKEN" localhost:8090/v1/compliance/profiles/gdpr-ch5-strict -d '{"regions":["eea"],"severity":"high"}'
+```
+
+```bash
+curl -XPOST localhost:8090/v1/compliance/evaluate -d '{"inframap": {...}, "classifications": ["sensitive_eu_citizen_data"]}'
+```
+
 ## Run
 
 Raw sockets need root or `CAP_NET_RAW`.
