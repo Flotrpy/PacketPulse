@@ -376,7 +376,7 @@ func (c *Coordinator) execute(ctx context.Context, req Request) (*model.Journey,
 	if err != nil {
 		return nil, "", err
 	}
-	if c.cfg.PublicTargetsOnly && !isPublic(addr) {
+	if c.cfg.PublicTargetsOnly && !IsPublic(addr) {
 		return nil, "", fmt.Errorf("target %s resolves to non-public address %s", req.Target, addr)
 	}
 	raw, err := c.tracer.Trace(tctx, addr, req.Options)
@@ -396,6 +396,40 @@ func (c *Coordinator) execute(ctx context.Context, req Request) (*model.Journey,
 		return nil, warn, fmt.Errorf("pipeline: %w", err)
 	}
 	return journey, warn, nil
+}
+
+// IngestRaw runs the pipeline on a trace measured by a remote agent (from
+// the agent's own network and public IP) and publishes the journey like a
+// local trace. req carries the job context; src is where the agent is.
+func (c *Coordinator) IngestRaw(ctx context.Context, raw *traceroute.RawTrace, req Request, agentID string, src *model.Location) (*model.Journey, error) {
+	if raw == nil || !raw.Target.IsValid() {
+		return nil, fmt.Errorf("%w: raw trace needs a target", ErrBadRequest)
+	}
+	if err := raw.Options.WithDefaults().Validate(); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrBadRequest, err)
+	}
+	if n := len(raw.Probes); n == 0 || n > 64*10 {
+		return nil, fmt.Errorf("%w: raw trace has %d probes", ErrBadRequest, n)
+	}
+	if c.cfg.PublicTargetsOnly && !IsPublic(raw.Target) {
+		return nil, fmt.Errorf("%w: target %s is not a public address", ErrBadRequest, raw.Target)
+	}
+	if req.Target == "" {
+		req.Target = raw.Target.String()
+	}
+	c.stats.submitted.Add(1)
+	j, err := c.pipe.Run(ctx, raw, pipeline.Request{
+		Target: req.Target, PolicyID: req.PolicyID, AgentID: agentID, AccessType: req.AccessType, SourceLocation: src,
+		Classifications: req.DataClassifications, App: req.App, SNI: req.SNI, Port: req.Port,
+	})
+	if err != nil {
+		c.stats.failed.Add(1)
+		return nil, fmt.Errorf("pipeline: %w", err)
+	}
+	c.stats.completed.Add(1)
+	c.log.Info("agent trace ingested", "agent", agentID, "target", req.Target, "journey", j.JourneyID, "hops", len(j.Hops))
+	c.publish(j)
+	return j, nil
 }
 
 func (c *Coordinator) resolveTarget(ctx context.Context, target string, ipv int) (netip.Addr, error) {
@@ -463,7 +497,8 @@ var nonPublic = []netip.Prefix{
 	netip.MustParsePrefix("64:ff9b:1::/48"),
 }
 
-func isPublic(a netip.Addr) bool {
+// IsPublic reports whether a is a globally routable unicast address.
+func IsPublic(a netip.Addr) bool {
 	a = a.Unmap()
 	if !a.IsGlobalUnicast() || a.IsPrivate() {
 		return false
