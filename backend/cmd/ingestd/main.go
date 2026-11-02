@@ -54,7 +54,7 @@ type flags struct {
 	noRDNS, pretty                                                            bool
 	srcLat, srcLon, srcAcc                                                    float64
 	srcCountry, srcCity                                                       string
-	rules, classes, app, sni, complianceURL                                   string
+	rules, classes, app, sni, complianceURL, forwardURL                       string
 	port                                                                      int
 	publicOnly                                                                bool
 }
@@ -94,6 +94,7 @@ func parseFlags() *flags {
 	flag.StringVar(&f.sni, "sni", "", "batch mode: TLS server name of the traffic, for classification rules")
 	flag.IntVar(&f.port, "port", 0, "batch mode: destination service port of the traffic, for classification rules")
 	flag.StringVar(&f.complianceURL, "compliance-url", "", "complianced base URL; classified journeys are evaluated there and raise alerts (token: COMPLIANCE_TOKEN)")
+	flag.StringVar(&f.forwardURL, "forward-url", "", "PacketPulse server to push every journey to (POST /v1/journeys; token: FORWARD_TOKEN), e.g. a hosted server that cannot trace itself")
 	flag.BoolVar(&f.publicOnly, "public-targets-only", false, "refuse targets that resolve to private/loopback/CGNAT/link-local addresses")
 	listPolicies := flag.Bool("list-policies", false, "print available policies and exit")
 	flag.Parse()
@@ -172,14 +173,23 @@ func run(f *flags) error {
 		b = &bridge.Bridge{Eval: bridge.HTTP{BaseURL: f.complianceURL, Token: os.Getenv("COMPLIANCE_TOKEN")}, Log: log}
 	}
 
+	var fwd *bridge.Forwarder
+	if f.forwardURL != "" {
+		fwd = &bridge.Forwarder{BaseURL: f.forwardURL, Token: os.Getenv("FORWARD_TOKEN"), Log: log}
+	}
+
 	if f.serve != "" {
 		if b != nil {
 			ch, _ := coord.Subscribe()
 			go b.Run(ctx, ch)
 		}
+		if fwd != nil {
+			ch, _ := coord.Subscribe()
+			go fwd.Run(ctx, ch)
+		}
 		return serve(ctx, f, coord, repo, ref, cls, log)
 	}
-	return batch(ctx, f, coord, repo, b, log)
+	return batch(ctx, f, coord, repo, b, fwd, log)
 }
 
 func splitList(s string) []string {
@@ -207,7 +217,7 @@ func resolveDataDir(v string) string {
 	return v
 }
 
-func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.JourneyRepository, b *bridge.Bridge, log *slog.Logger) error {
+func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.JourneyRepository, b *bridge.Bridge, fwd *bridge.Forwarder, log *slog.Logger) error {
 	var targets []string
 	for _, t := range append(strings.Split(f.targets, ","), flag.Args()...) {
 		if t = strings.TrimSpace(t); t != "" {
@@ -263,6 +273,13 @@ func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.
 		}
 		if b != nil {
 			b.Handle(ctx, journey)
+		}
+		if fwd != nil {
+			if err := fwd.Send(ctx, journey); err != nil {
+				log.Error("forward failed", "err", err)
+			} else {
+				log.Info("journey forwarded", "journey", journey.JourneyID, "to", f.forwardURL)
+			}
 		}
 	}
 

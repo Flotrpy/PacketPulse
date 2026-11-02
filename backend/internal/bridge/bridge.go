@@ -141,3 +141,64 @@ func (h HTTP) Evaluate(ctx context.Context, p compliance.Packet) (*compliance.Ev
 	}
 	return &ev, nil
 }
+
+// Forwarder pushes journeys to a remote PacketPulse server
+// (POST /v1/journeys), for agents tracing on hosts the server can't reach.
+type Forwarder struct {
+	BaseURL string
+	Token   string
+	Client  *http.Client
+	Log     *slog.Logger
+}
+
+func (f Forwarder) Send(ctx context.Context, j *model.Journey) error {
+	body, err := json.Marshal(j)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(f.BaseURL, "/")+"/v1/journeys", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if f.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+f.Token)
+	}
+	c := f.Client
+	if c == nil {
+		c = &http.Client{Timeout: 30 * time.Second}
+	}
+	res, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		b, _ := io.ReadAll(io.LimitReader(res.Body, 512))
+		return fmt.Errorf("forward %s: %s: %s", j.JourneyID, res.Status, b)
+	}
+	return nil
+}
+
+// Run forwards journeys until the channel closes or ctx ends.
+func (f Forwarder) Run(ctx context.Context, journeys <-chan *model.Journey) {
+	log := f.Log
+	if log == nil {
+		log = slog.Default()
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case j, ok := <-journeys:
+			if !ok {
+				return
+			}
+			if err := f.Send(ctx, j); err != nil {
+				log.Warn("journey not forwarded", "err", err)
+			} else {
+				log.Info("journey forwarded", "journey", j.JourneyID)
+			}
+		}
+	}
+}
