@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PacketPulse Globe</title>
+    <style>
+      :root {
+        --bg: #02040a;
+        --panel: rgba(8, 16, 30, 0.82);
+        --border: rgba(90, 150, 220, 0.25);
+        --text: #d8e6f5;
+        --muted: #7f97b2;
+        --green: #1aff8c;
+        --amber: #ffb31f;
+        --red: #ff3b3b;
+      }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+        font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow: hidden; }
+      #globe { position: fixed; inset: 0; }
+      .panel { position: fixed; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+        padding: 10px 12px; backdrop-filter: blur(6px); max-width: calc(100vw - 32px); box-sizing: border-box; }
+      #hud { top: 16px; left: 16px; min-width: 230px; }
+      #hud h1 { font-size: 13px; margin: 0 0 6px; letter-spacing: 0.08em; text-transform: uppercase; color: #9fd0ff; }
+      #hud .row { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); }
+      #hud .row b { color: var(--text); font-weight: 600; }
+      #hud .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      button { background: rgba(40, 80, 130, 0.35); color: var(--text); border: 1px solid var(--border);
+        border-radius: 5px; padding: 4px 8px; font: inherit; cursor: pointer; }
+      button:hover { background: rgba(60, 110, 170, 0.5); }
+      button.active { border-color: #6fb6ff; color: #fff; }
+      #status { margin-top: 6px; color: var(--muted); min-height: 1em; }
+      #legend { bottom: 16px; left: 16px; display: flex; align-items: center; gap: 10px; }
+      #legend .bar { width: 160px; height: 8px; border-radius: 4px;
+        background: linear-gradient(90deg, #1aff8c 0%, #73ff4d 35%, #ffb31f 55%, #ff7314 80%, #ff1f1f 100%); }
+      #inspector { top: 16px; right: 16px; width: 300px; display: none; }
+      #inspector.open { display: block; }
+      #inspector h2 { margin: 0 0 6px; font-size: 13px; }
+      #inspector dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; }
+      #inspector dt { color: var(--muted); }
+      #inspector dd { margin: 0; word-break: break-all; }
+      #inspector .hops { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+      #inspector .hops button { padding: 2px 6px; }
+      .pill { display: inline-block; padding: 0 6px; border-radius: 9px; font-weight: 600; }
+      .pill.green { background: rgba(26, 255, 140, 0.15); color: var(--green); }
+      .pill.amber { background: rgba(255, 179, 31, 0.15); color: var(--amber); }
+      .pill.red { background: rgba(255, 59, 59, 0.18); color: var(--red); }
+      @media (max-width: 640px) {
+        #hud { left: 16px; right: 16px; top: 16px; }
+        #inspector { left: 16px; right: 16px; top: auto; bottom: 64px; width: auto; }
+        #legend { left: 16px; right: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="globe"></div>
+    <div id="hud" class="panel">
+      <h1>PacketPulse</h1>
+      <div class="row">fps <b id="s-fps">–</b></div>
+      <div class="row">paths <b id="s-paths">0</b></div>
+      <div class="row">segments <b id="s-segs">0</b></div>
+      <div class="row">draw calls <b id="s-calls">0</b></div>
+      <div class="buttons">
+        <button data-demo="100">100 paths</button>
+        <button data-demo="500">500</button>
+        <button data-demo="1000">1000</button>
+        <button id="b-example">Example journey</button>
+        <button id="b-live">Live backend</button>
+        <button id="b-clear">Clear</button>
+      </div>
+      <div id="status"></div>
+    </div>
+    <div id="inspector" class="panel"></div>
+    <div id="legend" class="panel"><span>fast</span><div class="bar"></div><span>congested / loss</span></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

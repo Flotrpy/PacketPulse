@@ -4,3 +4,5 @@ data/raw/ipinfo/
 data/raw/opencellid/
 __pycache__/
 backend/ingestd
+frontend/node_modules/
+frontend/dist/
