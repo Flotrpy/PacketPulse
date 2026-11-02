@@ -434,6 +434,10 @@ func (c *Coordinator) update(j *Job, f func(*Job)) {
 	c.mu.Unlock()
 }
 
+// Publish fans a journey out to subscribers as if it had been traced here
+// (used for journeys pushed by remote agents).
+func (c *Coordinator) Publish(j *model.Journey) { c.publish(j) }
+
 func (c *Coordinator) publish(j *model.Journey) {
 	c.subMu.Lock()
 	defer c.subMu.Unlock()

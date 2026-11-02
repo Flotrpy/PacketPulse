@@ -254,3 +254,42 @@ func TestClassificationRulesAPI(t *testing.T) {
 		t.Fatalf("%+v", j.Metadata.DataClassification)
 	}
 }
+
+func TestPushJourneyFromAgent(t *testing.T) {
+	ts := newServer(t)
+	// A remote agent's journey, untagged at the agent: the server classifies it.
+	src := trace(t, ts, `{"target":"18.96.32.10","max_hops":3}`)
+	src.JourneyID = "11111111-2222-4333-8444-555555555555"
+	src.Metadata.AgentID = "laptop-1"
+	src.Metadata.DataClassification = &model.DataClassification{Labels: []string{}, Source: "none", App: "crm-eu"}
+	body, _ := json.Marshal(src)
+	post := func(token string, b []byte) *http.Response {
+		req, _ := http.NewRequest(http.MethodPost, ts.URL+"/v1/journeys", strings.NewReader(string(b)))
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		r, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	if r := post("", body); r.StatusCode != 401 {
+		t.Fatalf("no token: %d", r.StatusCode)
+	}
+	if r := post(adminToken, []byte(`{"journey_id":"x"}`)); r.StatusCode != 422 && r.StatusCode != 400 {
+		t.Fatalf("invalid journey: %d", r.StatusCode)
+	}
+	r := post(adminToken, body)
+	if r.StatusCode != 202 {
+		b, _ := io.ReadAll(r.Body)
+		t.Fatalf("push: %d %s", r.StatusCode, b)
+	}
+	r.Body.Close()
+	r, _ = http.Get(ts.URL + "/v1/journeys/" + src.JourneyID)
+	var got model.Journey
+	decode(t, r, &got)
+	if dc := got.Metadata.DataClassification; dc.Source != "rules" || dc.Labels[0] != "eu_personal_data" || got.Metadata.AgentID != "laptop-1" {
+		t.Fatalf("%+v %s", dc, got.Metadata.AgentID)
+	}
+}

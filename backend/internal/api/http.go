@@ -4,6 +4,7 @@
 //	GET  /v1/traces/{id}       job status
 //	GET  /v1/journeys/{id}     enriched journey
 //	GET  /v1/journeys          list (?destination=&verdict=&since=RFC3339&limit=)
+//	POST /v1/journeys          accept a journey traced by a remote agent [agent or admin token]
 //	GET  /v1/stream            Server-Sent Events: one "journey" event per finished trace
 //	GET  /v1/policies          compliance policies
 //	GET  /v1/schema            PacketJourney JSON Schema
@@ -37,6 +38,7 @@ type Server struct {
 
 	Classifier  *classify.Classifier // nil disables the /v1/classification routes
 	AdminTokens map[string]string    // bearer token -> actor, for rule changes
+	AgentTokens map[string]string    // bearer token -> agent, may push journeys (admins may too)
 }
 
 func (s *Server) Handler() http.Handler {
@@ -45,6 +47,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/traces/{id}", s.job)
 	mux.HandleFunc("GET /v1/journeys/{id}", s.journey)
 	mux.HandleFunc("GET /v1/journeys", s.journeys)
+	mux.HandleFunc("POST /v1/journeys", s.pushJourney)
 	mux.HandleFunc("GET /v1/stream", s.stream)
 	mux.HandleFunc("GET /v1/policies", s.policies)
 	mux.HandleFunc("GET /v1/schema", func(w http.ResponseWriter, _ *http.Request) {
