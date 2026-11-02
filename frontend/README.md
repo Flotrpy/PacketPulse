@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Then open `http://localhost:5173/?demo=500`. Other modes: `?example=1` (the backend's Mumbai → Frankfurt journey) and `?live=1` (follows `backend/` via `/v1/stream`; run `ingestd -serve :8080` first, and Vite proxies `/v1`).
+Then open `http://localhost:5173/`. With no query the globe follows the backend live (`/v1/stream`; run `go run ./cmd/packetpulse -data-dir ../data -web none` in `backend/` first, and Vite proxies `/v1` to :8080). Other modes: `?demo=500` (simulated load) and `?example=1` (the backend's Mumbai → Frankfurt journey). The **Trace from my computer** panel queues traces on your `ppagent` (see the root README).
 
 ```bash
 npm test
@@ -44,7 +44,7 @@ The globe uses the engine's preview mode (`/v1/compliance/evaluate/batch` with `
 Run it locally:
 
 ```bash
-cd backend && go run ./cmd/complianced -listen :8090 -data-dir ../data
+cd backend && go run ./cmd/packetpulse -data-dir ../data -web none
 ```
 
 ```bash
@@ -53,7 +53,7 @@ cd frontend && npm run dev
 
 Or everything on one port: `docker build -t packetpulse . && docker run -p 8080:8080 packetpulse` from the repo root, then `http://localhost:8080/?live=1&business=1`.
 
-Then open `http://localhost:5173/?example=1&business=1` (or `?demo=300&business=1&class=eu_personal_data`). Vite proxies `/v1/compliance` to :8090. In production, serve the globe from the same origin or start complianced with `-cors-origins https://your-globe`.
+Then open `http://localhost:5173/?example=1&business=1` (or `?demo=300&business=1&class=eu_personal_data`). Vite proxies `/v1` (including `/v1/compliance`) to :8080; set `PACKETPULSE_COMPLIANCE=http://localhost:8090` to use a standalone `complianced`. In production, serve the globe from the same origin (the Docker image does) or proxy `/v1` to the API (the Vercel deployment does).
 
 ## Component API
 

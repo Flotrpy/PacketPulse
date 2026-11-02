@@ -1,12 +1,14 @@
 import { defineConfig } from "vite";
 
-// Dev/preview proxies so the globe can talk to the Go services without CORS:
-//   /v1/compliance -> complianced (backend/cmd/complianced -listen :8090)
-//   /v1            -> ingestd     (backend/cmd/ingestd -serve :8080)
-// The more specific prefix must come first.
+// Dev/preview proxy so the globe talks to the Go backend without CORS.
+// Default: the all-in-one server (backend/cmd/packetpulse) on :8080, which
+// serves ingestion, compliance and the agent hub. To use the standalone
+// services instead, set PACKETPULSE_COMPLIANCE=http://localhost:8090.
+const api = process.env.PACKETPULSE_API ?? "http://localhost:8080";
+const compliance = process.env.PACKETPULSE_COMPLIANCE ?? api;
 const proxy = {
-  "/v1/compliance": "http://localhost:8090",
-  "/v1": "http://localhost:8080",
+  "/v1/compliance": compliance, // the more specific prefix must come first
+  "/v1": api,
 };
 
 export default defineConfig({
