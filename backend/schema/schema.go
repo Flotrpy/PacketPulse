@@ -18,9 +18,13 @@ var PacketJourney []byte
 //go:embed infra_map.schema.json
 var InfraMap []byte
 
+//go:embed compliance_alert.schema.json
+var ComplianceAlert []byte
+
 const (
 	packetJourneyURL = "https://packetpulse.dev/schemas/ingest/packet-journey.schema.json"
 	infraMapURL      = "https://packetpulse.dev/schemas/enrich/infra-map.schema.json"
+	alertURL         = "https://packetpulse.dev/schemas/compliance/violation-alert.schema.json"
 )
 
 type compiled struct {
@@ -29,7 +33,7 @@ type compiled struct {
 	err  error
 }
 
-var schemas = map[string]*compiled{packetJourneyURL: {}, infraMapURL: {}}
+var schemas = map[string]*compiled{packetJourneyURL: {}, infraMapURL: {}, alertURL: {}}
 
 func get(url string, src []byte) (*jsonschema.Schema, error) {
 	c := schemas[url]
@@ -71,3 +75,6 @@ func Validate(v any) error { return validate(packetJourneyURL, PacketJourney, v)
 
 // ValidateInfraMap checks an enrichment InfraMap (e.g. *enrich.InfraMap).
 func ValidateInfraMap(v any) error { return validate(infraMapURL, InfraMap, v) }
+
+// ValidateComplianceAlert checks a ComplianceViolationAlert.
+func ValidateComplianceAlert(v any) error { return validate(alertURL, ComplianceAlert, v) }

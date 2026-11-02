@@ -1,0 +1,223 @@
+{
+  "packet_id": "pkt-eu-001",
+  "evaluated_at": "2026-11-02T17:35:33.043555492Z",
+  "registry_snapshot": 1,
+  "verdict": "violation",
+  "classifications": [
+    "sensitive_eu_citizen_data"
+  ],
+  "profiles": [
+    {
+      "profile_id": "gdpr-ch5-strict",
+      "version": 1,
+      "matched_classification": "sensitive_eu_citizen_data",
+      "result": "violation",
+      "alerts": 2
+    }
+  ],
+  "alerts": [
+    {
+      "type": "ComplianceViolationAlert",
+      "alert_id": "b3ebcbd6-3773-4c68-b692-27eaeeb397c5",
+      "packet_id": "pkt-eu-001",
+      "profile_id": "gdpr-ch5-strict",
+      "profile_version": 1,
+      "severity": "critical",
+      "suspected": false,
+      "status": "open",
+      "classification": "sensitive_eu_citizen_data",
+      "territory": {
+        "country_iso2": "GB",
+        "country_name": "United Kingdom",
+        "regions": [
+          "gdpr-adequate"
+        ],
+        "lat": 51.5074,
+        "lon": -0.1278,
+        "located_by": "polygon"
+      },
+      "entered_at": "2026-11-02T09:30:00.0069Z",
+      "entered_at_source": "probe_sent_plus_half_rtt",
+      "point": {
+        "seq": 2,
+        "ttl": 2,
+        "kind": "hop",
+        "label": "London",
+        "location_confidence": 0.85,
+        "location_source": "rdns_hint"
+      },
+      "last_compliant_point": {
+        "seq": 1,
+        "country_iso2": "DE",
+        "label": "Frankfurt",
+        "lat": 50.1109,
+        "lon": 8.6821,
+        "at": "2026-11-02T09:30:00.0026Z"
+      },
+      "law": {
+        "code": "GDPR",
+        "title": "General Data Protection Regulation",
+        "citation": "Regulation (EU) 2016/679, Chapter V (Art. 44-49): transfers of personal data to third countries",
+        "articles": [
+          "Art. 44 (general principle for transfers)",
+          "Art. 45 (adequacy)",
+          "Art. 46 (appropriate safeguards)"
+        ],
+        "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+      },
+      "rule": "Personal data may leave the EEA only under an adequacy decision (Art. 45), appropriate safeguards (Art. 46) or a derogation (Art. 49). This profile allows none in transit.",
+      "mitigation": {
+        "action": "reroute",
+        "recommendation": "Reroute via EU-isolated AWS eu-central-1 proxy (eu-central-1, Frankfurt) and pin the flow to EEA-only transit; hold transfers until a re-trace shows no hop in United Kingdom.",
+        "proxy": {
+          "id": "aws-eu-central-1",
+          "name": "AWS eu-central-1 proxy",
+          "provider": "AWS",
+          "cloud_region": "eu-central-1",
+          "city": "Frankfurt",
+          "lat": 50.1109,
+          "lon": 8.6821,
+          "notes": "EU region; pair with EEA-only peering"
+        },
+        "alternatives": [
+          "Terminate TLS inside the EEA and forward over a private interconnect that peers only at EEA IXPs.",
+          "If the recipient must be outside the EEA, document an Art. 46 transfer (SCCs + transfer impact assessment) before resuming."
+        ]
+      },
+      "generated_at": "2026-11-02T17:35:33.043555492Z"
+    },
+    {
+      "type": "ComplianceViolationAlert",
+      "alert_id": "90ad3a39-4a74-4de3-9fac-c750b2f5b11e",
+      "packet_id": "pkt-eu-001",
+      "profile_id": "gdpr-ch5-strict",
+      "profile_version": 1,
+      "severity": "critical",
+      "suspected": false,
+      "status": "open",
+      "classification": "sensitive_eu_citizen_data",
+      "territory": {
+        "country_iso2": "US",
+        "country_name": "United States of America",
+        "subdivision": "US-VA",
+        "subdivision_name": "Virginia",
+        "regions": [
+          "us"
+        ],
+        "lat": 39.0438,
+        "lon": -77.4874,
+        "located_by": "polygon"
+      },
+      "entered_at": "2026-11-02T09:30:00.0384Z",
+      "entered_at_source": "probe_sent_plus_half_rtt",
+      "point": {
+        "seq": 3,
+        "ttl": 3,
+        "kind": "destination",
+        "label": "Ashburn",
+        "location_confidence": 0.85,
+        "location_source": "rdns_hint"
+      },
+      "last_compliant_point": {
+        "seq": 1,
+        "country_iso2": "DE",
+        "label": "Frankfurt",
+        "lat": 50.1109,
+        "lon": 8.6821,
+        "at": "2026-11-02T09:30:00.0026Z"
+      },
+      "law": {
+        "code": "GDPR",
+        "title": "General Data Protection Regulation",
+        "citation": "Regulation (EU) 2016/679, Chapter V (Art. 44-49): transfers of personal data to third countries",
+        "articles": [
+          "Art. 44 (general principle for transfers)",
+          "Art. 45 (adequacy)",
+          "Art. 46 (appropriate safeguards)"
+        ],
+        "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+      },
+      "rule": "Personal data may leave the EEA only under an adequacy decision (Art. 45), appropriate safeguards (Art. 46) or a derogation (Art. 49). This profile allows none in transit.",
+      "mitigation": {
+        "action": "reroute",
+        "recommendation": "Reroute via EU-isolated AWS eu-central-1 proxy (eu-central-1, Frankfurt) and pin the flow to EEA-only transit; hold transfers until a re-trace shows no hop in Virginia, United States of America.",
+        "proxy": {
+          "id": "aws-eu-central-1",
+          "name": "AWS eu-central-1 proxy",
+          "provider": "AWS",
+          "cloud_region": "eu-central-1",
+          "city": "Frankfurt",
+          "lat": 50.1109,
+          "lon": 8.6821,
+          "notes": "EU region; pair with EEA-only peering"
+        },
+        "alternatives": [
+          "Terminate TLS inside the EEA and forward over a private interconnect that peers only at EEA IXPs.",
+          "If the recipient must be outside the EEA, document an Art. 46 transfer (SCCs + transfer impact assessment) before resuming."
+        ]
+      },
+      "generated_at": "2026-11-02T17:35:33.043555492Z"
+    }
+  ],
+  "route": [
+    {
+      "seq": 0,
+      "kind": "source",
+      "label": "Paris",
+      "location": {
+        "country_iso2": "FR",
+        "country_name": "France",
+        "source": "polygon"
+      },
+      "regions": [
+        "eea",
+        "eu",
+        "schengen"
+      ]
+    },
+    {
+      "seq": 1,
+      "kind": "hop",
+      "label": "Frankfurt",
+      "location": {
+        "country_iso2": "DE",
+        "country_name": "Germany",
+        "source": "polygon"
+      },
+      "regions": [
+        "eea",
+        "eu",
+        "schengen"
+      ]
+    },
+    {
+      "seq": 2,
+      "kind": "hop",
+      "label": "London",
+      "location": {
+        "country_iso2": "GB",
+        "country_name": "United Kingdom",
+        "source": "polygon"
+      },
+      "regions": [
+        "gdpr-adequate"
+      ]
+    },
+    {
+      "seq": 3,
+      "kind": "destination",
+      "label": "Ashburn",
+      "location": {
+        "country_iso2": "US",
+        "country_name": "United States of America",
+        "subdivision": "US-VA",
+        "subdivision_name": "Virginia",
+        "source": "polygon"
+      },
+      "regions": [
+        "us"
+      ]
+    }
+  ],
+  "duration_ms": 0.245
+}
