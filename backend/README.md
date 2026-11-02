@@ -76,6 +76,29 @@ sudo FORWARD_TOKEN=<agent token> ./ingestd -data-dir ../data -forward-url https:
 - The image seeds the recorded example journey (Jio Mumbai → AWS Frankfurt, tagged `payment_system_data`), so the globe and alert stream are not empty before the first live trace. Remove `-seed` from the entrypoint for a clean start.
 - State (profiles, rules, journeys, alerts) is in memory and `/tmp`, so it resets when the container restarts.
 
+## Tracing from your own computer (`cmd/ppagent`, `internal/agenthub`)
+
+The hosted server can't send probes (no raw sockets on PaaS), and a trace from a data centre wouldn't show *your* path anyway. `ppagent` runs on your computer, so traces leave from your network and public IP:
+
+1. Start the agent (sudo / Administrator for raw sockets). It looks up your public IP and approximate location (ipinfo.io; override with `-lat -lon -country -city`) and long-polls the server for jobs:
+
+   ```bash
+   sudo PACKETPULSE_AGENT_TOKEN=<agent token> ./ppagent -server https://packetpulse-test.onrender.com
+   ```
+
+2. On the globe, type a target in **Trace from my computer**. The server queues a job; the agent resolves the name with your DNS, traces from your connection, and posts the raw trace back. The server runs the normal pipeline on it (GeoIP, ASN, medium inference, classification, compliance), with your location as the source, and streams the journey to the globe, which flies to it.
+
+`ppagent example.com 1.1.1.1` runs one-off traces without the globe. Prebuilt binaries are served at `/v1/agent/download/ppagent-{linux,darwin}-{amd64,arm64}` and `ppagent-windows-amd64.exe`.
+
+| Endpoint | |
+|---|---|
+| `POST /v1/agent/jobs` | queue a trace on your agent (trace, agent or admin token): `{target, protocol, max_hops, data_classifications, app, sni, port}`; 409 when no agent is online |
+| `GET /v1/agent/jobs/{id}` | `queued` → `dispatched` → `done` (with `journey_id`) or `failed` |
+| `GET /v1/agent/status` | agents seen in the last hour: online, public IP, network, location |
+| `POST /v1/agent/poll` · `POST /v1/agent/results` | agent side (agent token) |
+
+**Geolocation.** Router hops are placed with, in order: city hints in router hostnames, curated cloud-region prefixes, then the **DB-IP Lite City** database (CC BY 4.0, downloaded during the Docker build; `-geoip-city` takes any MaxMind-format `.mmdb`, such as GeoLite2 City). Every candidate must pass a speed-of-light check against the hop's RTT, including the destination. Anycast services (1.1.1.1, 8.8.8.8, CDNs) are therefore not drawn at their registered city when they answer from nearby.
+
 ## Infrastructure enrichment (`internal/enrich`, `cmd/infraenrich`)
 
 Takes the raw hop IPs from the traceroute engine and returns one **InfraMap** JSON document (`schema/infra_map.schema.json`; full example: `schema/examples/mumbai-jio-to-aws-frankfurt.inframap.json`).
