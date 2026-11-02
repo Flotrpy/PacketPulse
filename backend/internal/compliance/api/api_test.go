@@ -234,3 +234,104 @@ func TestReadTokensAndDisabledAdmin(t *testing.T) {
 		t.Fatalf("admin disabled -> %d", resp.StatusCode)
 	}
 }
+
+func TestBusinessModeEndpoints(t *testing.T) {
+	ts, _ := server(t)
+
+	// Batch preview: statuses for every point, no alerts published.
+	route := []map[string]any{
+		{"seq": 0, "ttl": 1, "kind": "source", "lat": 48.8566, "lon": 2.3522, "location_confidence": 1},
+		{"seq": 1, "ttl": 2, "kind": "hop", "lat": 51.5074, "lon": -0.1278, "location_confidence": 0.85},
+		{"seq": 2, "ttl": 3, "kind": "hop", "lat": 53.4808, "lon": -2.2426, "location_confidence": 0.85},
+		{"seq": 3, "ttl": 4, "kind": "destination", "lat": 50.1109, "lon": 8.6821, "location_confidence": 0.3},
+	}
+	batch := map[string]any{"publish": false, "packets": []map[string]any{
+		{"packet_id": "a", "timestamp": "2026-11-02T10:00:00Z", "classifications": []string{"sensitive_eu_citizen_data"}, "route": route},
+		{"packet_id": "b", "timestamp": "2026-11-02T10:00:00Z", "classifications": []string{"public"}, "route": route},
+		{"packet_id": "", "classifications": []string{"x"}, "route": route},
+	}}
+	resp, body := do(t, "POST", ts.URL+"/v1/compliance/evaluate/batch", "", batch)
+	if resp.StatusCode != 200 {
+		t.Fatalf("%d %v", resp.StatusCode, body)
+	}
+	evs := body["evaluations"].([]any)
+	if len(evs) != 2 || len(body["errors"].([]any)) != 1 {
+		t.Fatalf("evaluations %d errors %v", len(evs), body["errors"])
+	}
+	var statuses []string
+	for _, p := range evs[0].(map[string]any)["route"].([]any) {
+		statuses = append(statuses, p.(map[string]any)["status"].(string))
+	}
+	// London (entry, alert) and Manchester (same territory, no second alert) are both violations.
+	if strings.Join(statuses, ",") != "compliant,violation,violation,compliant" {
+		t.Fatalf("statuses %v", statuses)
+	}
+	if len(evs[0].(map[string]any)["alerts"].([]any)) != 1 || evs[1].(map[string]any)["verdict"] != "not_applicable" {
+		t.Fatalf("alerts/verdicts %v", evs)
+	}
+	if _, list := do(t, "GET", ts.URL+"/v1/compliance/alerts", "", nil); list["count"].(float64) != 0 {
+		t.Fatalf("preview published %v alerts", list["count"])
+	}
+	if _, ev := do(t, "POST", ts.URL+"/v1/compliance/evaluate?publish=false", "", packet); ev["verdict"] != "violation" {
+		t.Fatal("single preview")
+	}
+	if _, list := do(t, "GET", ts.URL+"/v1/compliance/alerts", "", nil); list["count"].(float64) != 0 {
+		t.Fatal("single preview published")
+	}
+
+	// Region borders as simplified GeoJSON.
+	resp, fc := do(t, "GET", ts.URL+"/v1/compliance/regions/us-ca/geometry?tolerance=0.1", "", nil)
+	feats := fc["features"].([]any)
+	if resp.StatusCode != 200 || len(feats) != 1 || feats[0].(map[string]any)["properties"].(map[string]any)["name"] != "California" {
+		t.Fatalf("us-ca geometry %d %v", resp.StatusCode, fc["features"])
+	}
+	_, eea := do(t, "GET", ts.URL+"/v1/compliance/regions/eea/geometry", "", nil)
+	if n := len(eea["features"].([]any)); n != 30 {
+		t.Fatalf("EEA members drawn: %d", n)
+	}
+	if resp, _ := do(t, "GET", ts.URL+"/v1/compliance/regions/nope/geometry", "", nil); resp.StatusCode != 404 {
+		t.Fatal("unknown region")
+	}
+}
+
+func TestLawDirectory(t *testing.T) {
+	ts, _ := server(t)
+	// No directory configured on the default test server.
+	if resp, _ := do(t, "GET", ts.URL+"/v1/compliance/laws?countries=FR", "", nil); resp.StatusCode != 404 {
+		t.Fatalf("laws without directory -> %d", resp.StatusCode)
+	}
+	d, err := compliance.LoadLawDirectory("../../../../data/curated/regulations/jurisdictions.json")
+	if err != nil {
+		t.Skip(err)
+	}
+	loc, _ := compliance.LoadLocator(ne+"ne_50m_admin_0_countries.geojson.gz", "")
+	reg, _ := compliance.NewRegistry("")
+	s := &Server{Engine: &compliance.Engine{Registry: reg, Locator: loc}, Alerts: compliance.NewAlertStore(1), Laws: d, CORSOrigins: []string{"http://globe.example"}}
+	ts2 := httptest.NewServer(s.Handler())
+	defer ts2.Close()
+	resp, body := do(t, "GET", ts2.URL+"/v1/compliance/laws?countries=IN,FR,SA,XK", "", nil, "Origin", "http://globe.example")
+	if resp.Header.Get("Access-Control-Allow-Origin") != "http://globe.example" {
+		t.Fatal("CORS header missing")
+	}
+	var codes []string
+	for _, j := range body["jurisdictions"].([]any) {
+		codes = append(codes, j.(map[string]any)["iso2"].(string))
+	}
+	// France brings in the EU-level entry (GDPR, NIS2...), listed first.
+	// The curated file has no France-specific entry: France is covered by "EU".
+	if strings.Join(codes, ",") != "EU,IN,SA" {
+		t.Fatalf("codes %v", codes)
+	}
+	if missing := toStrings(body["not_in_directory"]); !slicesContains(missing, "XK") || !slicesContains(missing, "FR") {
+		t.Fatalf("missing %v", missing)
+	}
+}
+
+func slicesContains(s []string, v string) bool {
+	for _, x := range s {
+		if x == v {
+			return true
+		}
+	}
+	return false
+}

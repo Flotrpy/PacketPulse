@@ -39,6 +39,8 @@ func run() error {
 	dataDir := flag.String("data-dir", "auto", "repo data/ directory (Natural Earth polygons)")
 	store := flag.String("store", "compliance-registry.json", "registry file (profiles, regions, proxies, audit log); empty = memory only")
 	alertCap := flag.Int("alert-capacity", 10000, "alerts kept in memory")
+	lawsPath := flag.String("laws", "", "law directory JSON (default <data-dir>/curated/regulations/jurisdictions.json; none = disabled)")
+	corsOrigins := flag.String("cors-origins", "", "comma-separated browser origins allowed to call the API directly (* = any)")
 	flag.Parse()
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
@@ -56,6 +58,22 @@ func run() error {
 		return err
 	}
 	alerts := compliance.NewAlertStore(*alertCap)
+	var laws *compliance.LawDirectory
+	if *lawsPath != "none" {
+		p := *lawsPath
+		if p == "" {
+			p = filepath.Join(dir, "curated", "regulations", "jurisdictions.json")
+		}
+		if laws, err = compliance.LoadLawDirectory(p); err != nil {
+			log.Warn("law directory not loaded", "path", p, "err", err)
+		}
+	}
+	var origins []string
+	for _, o := range strings.Split(*corsOrigins, ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			origins = append(origins, o)
+		}
+	}
 	admins, err := parseTokens(os.Getenv("COMPLIANCE_ADMIN_TOKENS"))
 	if err != nil {
 		return fmt.Errorf("COMPLIANCE_ADMIN_TOKENS: %w", err)
@@ -79,6 +97,8 @@ func run() error {
 			Alerts:      alerts,
 			AdminTokens: admins,
 			ReadTokens:  readers,
+			Laws:        laws,
+			CORSOrigins: origins,
 		}).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}

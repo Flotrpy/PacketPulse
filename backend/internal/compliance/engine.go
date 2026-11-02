@@ -121,10 +121,30 @@ type ProfileResult struct {
 // ResolvedPoint is a route point after territory lookup.
 type ResolvedPoint struct {
 	Seq      int      `json:"seq"`
+	TTL      int      `json:"ttl,omitempty"`
 	Kind     string   `json:"kind"`
 	Label    string   `json:"label,omitempty"`
 	Location Location `json:"location"`
 	Regions  []string `json:"regions"`
+	// Status is the worst verdict any matching profile gave this point:
+	// not_evaluated < compliant < suspected < violation. Every point inside a
+	// non-permitted territory is marked, not only the entry point that
+	// raised the alert, so clients can colour whole stretches of a route.
+	Status    string   `json:"status"`
+	FlaggedBy []string `json:"flagged_by,omitempty"`
+}
+
+var statusRank = map[string]int{"not_evaluated": 0, "compliant": 1, "suspected": 2, "violation": 3}
+
+func (r *ResolvedPoint) mark(status, profileID string) {
+	if statusRank[status] > statusRank[r.Status] {
+		r.Status = status
+	}
+	if status == "suspected" || status == "violation" {
+		if !contains(r.FlaggedBy, profileID) {
+			r.FlaggedBy = append(r.FlaggedBy, profileID)
+		}
+	}
 }
 
 // Evaluation is the engine's verdict for one packet.
@@ -159,6 +179,17 @@ var ErrBadPacket = errors.New("invalid packet")
 // its classifications. It uses a single registry snapshot, so a concurrent
 // profile update applies cleanly to the next packet.
 func (e *Engine) Evaluate(ctx context.Context, p Packet) (*Evaluation, error) {
+	return e.evaluate(ctx, p, true)
+}
+
+// Preview evaluates without publishing alerts to the sink. Visualisation
+// clients use it to colour routes without flooding the alert stream every
+// time they re-check the same traffic.
+func (e *Engine) Preview(ctx context.Context, p Packet) (*Evaluation, error) {
+	return e.evaluate(ctx, p, false)
+}
+
+func (e *Engine) evaluate(ctx context.Context, p Packet, publish bool) (*Evaluation, error) {
 	if err := validatePacket(p); err != nil {
 		return nil, err
 	}
@@ -184,7 +215,8 @@ func (e *Engine) Evaluate(ctx context.Context, p Packet) (*Evaluation, error) {
 			return nil, err
 		}
 		loc := e.Locator.Locate(LatLon{Lat: rp.Lat, Lon: rp.Lon}, rp.CountryHint)
-		resolved[i] = ResolvedPoint{Seq: rp.Seq, Kind: rp.Kind, Label: rp.Label, Location: loc, Regions: snap.regionsAt(loc, LatLon{Lat: rp.Lat, Lon: rp.Lon})}
+		resolved[i] = ResolvedPoint{Seq: rp.Seq, TTL: rp.TTL, Kind: rp.Kind, Label: rp.Label, Location: loc,
+			Regions: snap.regionsAt(loc, LatLon{Lat: rp.Lat, Lon: rp.Lon}), Status: "not_evaluated"}
 	}
 	ev.Route = resolved
 
@@ -205,7 +237,9 @@ func (e *Engine) Evaluate(ctx context.Context, p Packet) (*Evaluation, error) {
 		res := ProfileResult{ProfileID: prof.ID, Version: prof.Version, Matched: matched, Result: "compliant"}
 		alerts := e.evaluateProfile(snap, prof, matched, p, route, resolved, now())
 		for _, a := range alerts {
-			if a.Suspected {
+			// Uncertain location, or allowed only pending review (e.g. DPF
+			// listing for US recipients): not a confirmed violation.
+			if a.Suspected || a.Exception != "" {
 				if res.Result == "compliant" {
 					res.Result = "suspected_violation"
 				}
@@ -230,7 +264,7 @@ func (e *Engine) Evaluate(ctx context.Context, p Packet) (*Evaluation, error) {
 			}
 		}
 	}
-	if e.Sink != nil {
+	if publish && e.Sink != nil {
 		for _, a := range ev.Alerts {
 			e.Sink.Publish(a)
 		}
@@ -246,9 +280,16 @@ func (e *Engine) evaluateProfile(snap *Snapshot, prof Profile, class string, p P
 	var alerts []ComplianceViolationAlert
 	var lastOK *CompliantPoint
 	lastBadTerritory := ""
+	// State/province detail matters only for profiles drawn on subdivisions
+	// (e.g. CCPA's California line). For country-level rules it would only
+	// add noise and re-alert at every internal state border.
+	useSub := snap.usesSubdivisions(prof)
 	start := 0
 	if prof.Scope == "destination_only" {
 		start = len(route) - 1
+		for i := 0; i < start; i++ {
+			res[i].mark("compliant", prof.ID) // transit is allowed under storage rules
+		}
 		// The last compliant point is still useful for the recommendation.
 		for i := len(route) - 2; i >= 0; i-- {
 			if ok, _ := snap.permitted(prof, res[i]); ok && res[i].Location.CountryISO2 != "" {
@@ -260,15 +301,25 @@ func (e *Engine) evaluateProfile(snap *Snapshot, prof Profile, class string, p P
 	for i := start; i < len(route); i++ {
 		rp, rs := route[i], res[i]
 		if rs.Location.CountryISO2 == "" {
-			continue // over water or unlocatable: no territory entered
+			res[i].mark("compliant", prof.ID) // over water or unlocatable: no territory entered
+			continue
 		}
 		ok, downgradedBy := snap.permitted(prof, rs)
 		if ok && downgradedBy == "" {
+			res[i].mark("compliant", prof.ID)
 			lastOK = compliantPoint(rp, rs)
 			lastBadTerritory = ""
 			continue
 		}
-		territoryKey := rs.Location.CountryISO2 + "/" + rs.Location.Subdivision
+		if rp.LocationConfidence < prof.MinLocationConfidence || downgradedBy != "" {
+			res[i].mark("suspected", prof.ID)
+		} else {
+			res[i].mark("violation", prof.ID)
+		}
+		territoryKey := rs.Location.CountryISO2
+		if useSub {
+			territoryKey += "/" + rs.Location.Subdivision
+		}
 		if territoryKey == lastBadTerritory {
 			continue
 		}
@@ -290,8 +341,10 @@ func (e *Engine) evaluateProfile(snap *Snapshot, prof Profile, class string, p P
 		}
 		terr := Territory{
 			CountryISO2: rs.Location.CountryISO2, CountryName: rs.Location.CountryName,
-			Subdivision: rs.Location.Subdivision, SubdivisionName: rs.Location.SubdivisionName,
 			Regions: rs.Regions, Lat: rp.Lat, Lon: rp.Lon, LocatedBy: rs.Location.Source,
+		}
+		if useSub {
+			terr.Subdivision, terr.SubdivisionName = rs.Location.Subdivision, rs.Location.SubdivisionName
 		}
 		a := ComplianceViolationAlert{
 			Type: "ComplianceViolationAlert", AlertID: newAlertID(), PacketID: p.PacketID,
@@ -309,6 +362,19 @@ func (e *Engine) evaluateProfile(snap *Snapshot, prof Profile, class string, p P
 
 func compliantPoint(rp RoutePoint, rs ResolvedPoint) *CompliantPoint {
 	return &CompliantPoint{Seq: rp.Seq, CountryISO2: rs.Location.CountryISO2, Label: rp.Label, Lat: rp.Lat, Lon: rp.Lon, At: rp.Timestamp.UTC()}
+}
+
+func (s *Snapshot) usesSubdivisions(prof Profile) bool {
+	ids := append([]string{}, prof.Regions...)
+	for _, e := range prof.Exceptions {
+		ids = append(ids, e.Region)
+	}
+	for _, id := range ids {
+		if len(s.Regions[id].Subdivisions) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // permitted reports whether a resolved point is allowed under prof, and the

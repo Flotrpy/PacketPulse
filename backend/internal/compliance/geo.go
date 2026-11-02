@@ -22,6 +22,7 @@ type LatLon struct {
 type polygonIndex struct {
 	polys []tagged
 	grid  map[[2]int][]int32
+	byTag map[string][]int32
 }
 
 type tagged struct {
@@ -31,7 +32,9 @@ type tagged struct {
 	rings                          [][][2]float64 // rings[0] outer, rest holes
 }
 
-func newPolygonIndex() *polygonIndex { return &polygonIndex{grid: map[[2]int][]int32{}} }
+func newPolygonIndex() *polygonIndex {
+	return &polygonIndex{grid: map[[2]int][]int32{}, byTag: map[string][]int32{}}
+}
 
 func (ix *polygonIndex) add(tag, name string, rings [][][2]float64) {
 	if len(rings) == 0 || len(rings[0]) < 3 {
@@ -44,6 +47,7 @@ func (ix *polygonIndex) add(tag, name string, rings [][][2]float64) {
 	}
 	id := int32(len(ix.polys))
 	ix.polys = append(ix.polys, t)
+	ix.byTag[tag] = append(ix.byTag[tag], id)
 	for la := int(math.Floor(t.minLat)); la <= int(math.Floor(t.maxLat)); la++ {
 		for lo := int(math.Floor(t.minLon)); lo <= int(math.Floor(t.maxLon)); lo++ {
 			ix.grid[[2]int{la, lo}] = append(ix.grid[[2]int{la, lo}], id)

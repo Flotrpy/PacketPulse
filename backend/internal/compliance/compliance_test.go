@@ -341,3 +341,27 @@ func TestConcurrentEvaluateAndUpdate(t *testing.T) {
 	close(stop)
 	wg.Wait()
 }
+
+// Country-level profiles ignore internal state lines: Mumbai (Maharashtra) ->
+// Ahmedabad (Gujarat) is one entry into India, not two.
+func TestCountryProfilesIgnoreSubdivisions(t *testing.T) {
+	e, _ := engine(t)
+	ev, _ := e.Evaluate(context.Background(), Packet{PacketID: "in", Timestamp: t0, Classifications: []string{"sensitive_eu_citizen_data"}, Route: []RoutePoint{
+		pt(0, "source", "Mumbai", 19.076, 72.8777, 0), pt(1, "hop", "Ahmedabad", 23.0225, 72.5714, 8), pt(2, "destination", "Frankfurt", 50.1109, 8.6821, 120)}})
+	if len(ev.Alerts) != 1 || ev.Alerts[0].Territory.Subdivision != "" || strings.Contains(ev.Alerts[0].Mitigation.Recommendation, "Maharashtra") {
+		t.Fatalf("%+v", ev.Alerts)
+	}
+	if ev.Route[1].Status != "violation" || ev.Route[1].Location.Subdivision != "IN-GJ" {
+		t.Fatalf("route point still carries the subdivision for display: %+v", ev.Route[1])
+	}
+}
+
+// A path whose only issue is an exception-downgraded territory (US under the
+// adequacy profile) is a suspected violation, not a confirmed one.
+func TestExceptionOnlyPathIsSuspected(t *testing.T) {
+	e, _ := engine(t)
+	ev, _ := e.Evaluate(context.Background(), parisToAshburn("eu_personal_data"))
+	if ev.Verdict != "suspected_violation" || ev.Route[3].Status != "suspected" {
+		t.Fatalf("verdict %s, US point %s", ev.Verdict, ev.Route[3].Status)
+	}
+}
