@@ -11,6 +11,11 @@
  * is a viewer, alert publishing belongs to the ingestion pipeline. Only new or
  * rerouted paths are re-evaluated; latency-only updates cannot change
  * compliance. Registry changes made by admins are picked up by "Refresh".
+ *
+ * Data class: "per-path tags" (TAGS) evaluates each path with the
+ * classifications assigned at ingestion; untagged paths are not governed by
+ * any profile and stay grey. Picking a class instead evaluates every path as
+ * if it carried that class (a what-if view).
  */
 import { complianceCss } from "../core/compliance";
 import type { HopSelection } from "../core/types";
@@ -20,6 +25,8 @@ import { ComplianceClient, type LawEntry, type Profile } from "./client";
 import { applyEvaluation, buildPacket, sortAlerts, type AlertView, type ResolvedPoint, type SeqRef } from "./packet";
 
 const BATCH = 200;
+/** Data-class selector value: use each path's own ingestion tags. */
+export const TAGS = "@tags";
 const MAX_MARKERS = 2000;
 const SEVERITY_RGB: Record<string, [number, number, number]> = {
   critical: [1.0, 0.12, 0.14], high: [1.0, 0.35, 0.12], medium: [1.0, 0.65, 0.1], low: [1.0, 0.85, 0.3], info: [0.4, 0.75, 1.0],
@@ -85,7 +92,7 @@ export class BusinessMode {
       this.profiles = (await this.client.profiles()).profiles.filter((p) => p.enabled);
       const classes = this.classifications();
       let note = "";
-      if (!classes.includes(this.classification)) {
+      if (this.classification !== TAGS && !classes.includes(this.classification)) {
         const prev = this.classification;
         this.classification = classes.includes("sensitive_eu_citizen_data") ? "sensitive_eu_citizen_data" : (classes[0] ?? "");
         if (prev) note = `"${prev.replace(/_/g, " ")}" is no longer governed by an enabled profile; showing "${this.classification.replace(/_/g, " ")}".`;
@@ -116,9 +123,23 @@ export class BusinessMode {
     }
   }
 
-  /** Profiles that govern the current classification. */
+  /** Labels a path is evaluated with in the current mode. */
+  labelsFor(path: { classifications?: string[] }): string[] {
+    return this.classification === TAGS ? (path.classifications ?? []) : this.classification ? [this.classification] : [];
+  }
+
+  /** Labels across the paths on the globe (TAGS mode) or the picked class. */
+  private activeLabels(): Set<string> {
+    if (this.classification !== TAGS) return new Set(this.classification ? [this.classification] : []);
+    const out = new Set<string>();
+    for (const id of this.globe.pathIds) this.globe.getPath(id)?.classifications?.forEach((l) => out.add(l));
+    return out;
+  }
+
+  /** Profiles that govern the active labels. */
   activeProfiles(): Profile[] {
-    return this.profiles.filter((p) => p.classifications.includes(this.classification));
+    const labels = this.activeLabels();
+    return this.profiles.filter((p) => p.classifications.some((c) => labels.has(c)));
   }
 
   private classifications(): string[] {
@@ -126,7 +147,10 @@ export class BusinessMode {
   }
 
   /** Permitted = allow-list regions + "allow" exceptions; prohibited = deny-list regions. */
+  private overlayKey = "";
+
   private async loadOverlay(): Promise<void> {
+    this.overlayKey = [...this.activeLabels()].sort().join(",");
     const permitted = new Set<string>();
     const prohibited = new Set<string>();
     for (const p of this.activeProfiles()) {
@@ -156,6 +180,8 @@ export class BusinessMode {
     let changed = false;
     for (const id of c.removed) changed = this.state.delete(id) || changed;
     if (changed) this.paint();
+    // New tags on the globe bring new profiles: redraw their jurisdictions.
+    if (this.classification === TAGS && [...this.activeLabels()].sort().join(",") !== this.overlayKey) await this.loadOverlay().catch((err) => this.fail(err));
     if (c.rerouted.length) await this.evaluate(c.rerouted).catch((err) => this.fail(err));
   }
 
@@ -171,8 +197,14 @@ export class BusinessMode {
       for (const id of ids.slice(i, i + BATCH)) {
         const path = this.globe.getPath(id);
         if (!path) continue;
+        const labels = this.labelsFor(path);
+        if (!labels.length) {
+          // Untagged: no profile applies, nothing to ask the engine.
+          this.state.set(id, { verdict: "untagged", alerts: [], hopPoints: [] });
+          continue;
+        }
         const t0 = path.startedAt ? new Date(path.startedAt) : start; // live/simulated paths: now
-        const { packet, index } = buildPacket(path, [this.classification], Number.isNaN(t0.getTime()) ? start : t0);
+        const { packet, index } = buildPacket(path, labels, Number.isNaN(t0.getTime()) ? start : t0);
         chunk.push({ id, index, packet });
       }
       if (!chunk.length) continue;
@@ -226,7 +258,7 @@ export class BusinessMode {
   }
 
   private counts() {
-    const c = { compliant: 0, violation: 0, suspected_violation: 0, not_applicable: 0 } as Record<string, number>;
+    const c = { compliant: 0, violation: 0, suspected_violation: 0, not_applicable: 0, untagged: 0 } as Record<string, number>;
     for (const s of this.state.values()) c[s.verdict] = (c[s.verdict] ?? 0) + 1;
     return c;
   }
@@ -244,14 +276,16 @@ export class BusinessMode {
         <button data-act="refresh" title="Reload profiles and re-evaluate">Refresh</button>
       </div>
       <label class="bm-row">Data class
-        <select id="bm-class">${classes.map((x) => `<option value="${esc(x)}" ${x === this.classification ? "selected" : ""}>${esc(x.replace(/_/g, " "))}</option>`).join("")}</select>
+        <select id="bm-class"><option value="${TAGS}" ${this.classification === TAGS ? "selected" : ""}>per-path tags (from ingestion)</option>${classes.map((x) => `<option value="${esc(x)}" ${x === this.classification ? "selected" : ""}>${esc(x.replace(/_/g, " "))}</option>`).join("")}</select>
       </label>
-      <div class="bm-profiles">${profiles.map((p) => `<div><b>${esc(p.law.code)}</b> ${esc(p.name)} <span class="muted">(${p.mode === "allow_list" ? "permitted" : "prohibited"}: ${esc(p.regions.join(", "))}; ${p.scope.replace("_", " ")})</span></div>`).join("") || '<div class="muted">No enabled profile governs this class.</div>'}</div>
+      <div class="bm-profiles">${profiles.map((p) => `<div><b>${esc(p.law.code)}</b> ${esc(p.name)} <span class="muted">(${p.mode === "allow_list" ? "permitted" : "prohibited"}: ${esc(p.regions.join(", "))}; ${p.scope.replace("_", " ")})</span></div>`).join("") || `<div class="muted">${this.classification === TAGS ? (this.activeLabels().size ? `No enabled profile governs ${esc([...this.activeLabels()].join(", "))}.` : "No path on the globe carries ingestion tags yet.") : "No enabled profile governs this class."}</div>`}</div>
+      ${this.classification === TAGS && this.activeLabels().size ? `<div class="muted">Tags on the globe: ${esc([...this.activeLabels()].sort().join(", ").replace(/_/g, " "))}</div>` : ""}
       <div class="bm-counts">
         <span><i style="background:${complianceCss(3)}"></i>${c.violation} violating</span>
         <span><i style="background:${complianceCss(2)}"></i>${c.suspected_violation} suspected</span>
         <span><i style="background:${complianceCss(1)}"></i>${c.compliant} compliant</span>
-        <span class="muted">${evaluated}/${this.globe.pathIds.length} evaluated</span>
+        ${c.untagged ? `<span class="muted">${c.untagged} untagged</span>` : ""}
+        <span class="muted">${evaluated - c.untagged}/${this.globe.pathIds.length} evaluated</span>
       </div>
       <div id="bm-status" class="${this.lastError ? "err" : "muted"}">${esc(this.lastError)}</div>
       <div class="bm-tabs">
@@ -276,7 +310,7 @@ export class BusinessMode {
           const review = a.suspected || !!a.exception;
           return `<div class="bm-alert ${review ? "suspected" : ""}" data-alert="${i}">
             <div><span class="sev ${a.severity}">${a.severity}${a.suspected ? " · suspected" : a.exception ? " · review" : ""}</span> <b>${esc(where)}</b> <span class="muted">${esc(a.point.kind.replace("_", " "))}</span></div>
-            <div class="muted">${esc(path?.label ?? v.pathId)} · entered ${esc(a.entered_at.replace("T", " ").replace("Z", " UTC"))}</div>
+            <div class="muted">${esc(path?.label ?? v.pathId)}${this.classification === TAGS && path?.classifications?.length ? ` [${esc(path.classifications.join(", "))}]` : ""} · entered ${esc(a.entered_at.replace("T", " ").replace("Z", " UTC"))}</div>
             <div>${esc(a.law.code)}: ${esc(a.law.citation)}</div>
             ${a.exception ? `<div class="muted">${esc(a.exception)}</div>` : ""}
             <div class="rec">${esc(a.mitigation.recommendation)}</div>
@@ -375,10 +409,11 @@ export class BusinessMode {
   }
 
   /** Inspector details for a hop. */
-  hopDetails(pathId: string, hop: number): { point?: ResolvedPoint; alerts: AlertView[] } | null {
+  hopDetails(pathId: string, hop: number): { verdict: string; labels: string[]; point?: ResolvedPoint; alerts: AlertView[] } | null {
     const s = this.state.get(pathId);
     if (!s) return null;
-    return { point: s.hopPoints[hop], alerts: s.alerts.filter((a) => a.hop === hop) };
+    const path = this.globe.getPath(pathId);
+    return { verdict: s.verdict, labels: path ? this.labelsFor(path) : [], point: s.hopPoints[hop], alerts: s.alerts.filter((a) => a.hop === hop) };
   }
 }
 

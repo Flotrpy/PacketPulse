@@ -50,6 +50,8 @@ export interface PathInput {
   verdict?: string;
   /** When the trace started (RFC 3339): compliance entry times are relative to it. */
   startedAt?: string;
+  /** Data classifications assigned at ingestion (Business Mode evaluates the path with them). */
+  classifications?: string[];
 }
 
 /** A hop the user picked. */

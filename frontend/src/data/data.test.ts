@@ -30,6 +30,12 @@ describe("journeyToPath (backend example: Jio Mumbai -> AWS Frankfurt)", () => {
     expect(path.hops[1].lossPct).toBe(100);
   });
 
+  it("carries the data classification assigned at ingestion", () => {
+    expect(path.classifications).toEqual(["payment_system_data"]);
+    const untagged = journeyToPath({ ...example, metadata: { ...example.metadata, data_classification: undefined } })!;
+    expect(untagged.classifications).toEqual([]);
+  });
+
   it("scores the subsea crossing green (1.4x light speed)", () => {
     const h = computeHealth(path.hops, path.hops.map((x) => latLonToVec3(x.lat, x.lon)));
     expect(statusOf(h[3].severity)).toBe("green");

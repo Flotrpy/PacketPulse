@@ -4,13 +4,14 @@
  *   ?example=1     the backend's example journey (Mumbai -> Frankfurt)
  *   ?live=1        follow the Go backend's /v1/stream (vite proxies /v1 to :8080)
  *   ?business=1    start in Business Mode (needs complianced; vite proxies /v1/compliance to :8090)
- *   &class=...     data classification to evaluate in Business Mode
+ *   &class=...     data classification to evaluate in Business Mode (class=tags: each path's ingestion tags;
+ *                  the default with ?live=1)
  */
 import { PacketGlobe } from "./PacketGlobe";
 import { statusOf } from "./core/health";
 import type { HopSelection } from "./core/types";
 import { inframapToPath, type InfraMap } from "./data/inframapAdapter";
-import { BusinessMode } from "./business/BusinessMode";
+import { BusinessMode, TAGS } from "./business/BusinessMode";
 import { complianceCss, statusCode } from "./core/compliance";
 import { Simulator } from "./data/simulator";
 import { connectBackend } from "./data/streamClient";
@@ -119,11 +120,13 @@ function renderInspector(sel: HopSelection | null): void {
 function complianceRows(sel: HopSelection): string {
   if (!business.isEnabled) return "";
   const d = business.hopDetails(sel.pathId, sel.hopIndex);
+  if (d?.verdict === "untagged") return `<dt>data class</dt><dd class="muted">untagged at ingestion: no profile applies</dd>`;
   if (!d?.point) return `<dt>compliance</dt><dd class="muted">not evaluated yet</dd>`;
   const p = d.point;
   const code = statusCode(p.status);
   const where = [p.location.subdivision_name, p.location.country_name ?? p.location.country_iso2].filter(Boolean).join(", ") || "international waters";
-  let rows = `<dt>jurisdiction</dt><dd>${esc(where)}${p.regions.length ? ` <span class="muted">(${esc(p.regions.join(", "))})</span>` : ""}</dd>
+  let rows = `<dt>data class</dt><dd>${esc(d.labels.join(", ").replace(/_/g, " "))}</dd>
+    <dt>jurisdiction</dt><dd>${esc(where)}${p.regions.length ? ` <span class="muted">(${esc(p.regions.join(", "))})</span>` : ""}</dd>
     <dt>compliance</dt><dd><span class="pill" style="color:${complianceCss(code)};background:rgba(255,255,255,0.06)">${esc(p.status.replace("_", " "))}</span>${p.flagged_by?.length ? ` <span class="muted">${esc(p.flagged_by.join(", "))}</span>` : ""}</dd>`;
   for (const v of d.alerts) {
     rows += `<dt>alert</dt><dd>${esc(v.alert.law.code)} · entered ${esc(new Date(v.alert.entered_at).toISOString().slice(11, 23))} UTC<br><span class="muted">${esc(v.alert.mitigation.recommendation)}</span></dd>`;
@@ -175,7 +178,8 @@ window.addEventListener("keydown", (e) => {
 
 const q = new URLSearchParams(location.search);
 if (q.has("business")) {
-  if (q.get("class")) void business.setClassification(q.get("class")!);
+  const cls = q.get("class") ?? (q.has("live") ? "tags" : "");
+  if (cls) void business.setClassification(cls === "tags" ? TAGS : cls);
   void toggleBusiness(true);
 }
 if (q.has("live")) startLive();

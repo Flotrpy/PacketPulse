@@ -37,6 +37,7 @@ export interface PacketJourney {
     timestamp: string;
     destination: { ip: string; hostname?: string; location?: JLocation };
     source: { ip: string; location?: JLocation };
+    data_classification?: { labels: string[]; source: string; rule_ids?: string[] };
   };
   hops: JHop[];
   infrastructure: { segments: JSegment[] };
@@ -103,5 +104,6 @@ export function journeyToPath(j: PacketJourney): PathInput | null {
   }
 
   if (hops.length < 2) return null;
-  return { id: j.journey_id, hops, label: j.metadata.destination.hostname ?? j.metadata.destination.ip, verdict: j.compliance.verdict, startedAt: j.metadata.timestamp };
+  return { id: j.journey_id, hops, label: j.metadata.destination.hostname ?? j.metadata.destination.ip, verdict: j.compliance.verdict, startedAt: j.metadata.timestamp,
+    classifications: j.metadata.data_classification?.labels ?? [] };
 }
