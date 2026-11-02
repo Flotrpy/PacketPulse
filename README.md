@@ -2,7 +2,7 @@
 
 Network Intelligence & Sovereignty: live traceroute paths on a 3D globe, with subsea/terrestrial/cellular infrastructure inference and data-sovereignty compliance checks.
 
-**Status:** research complete; the Go ingestion backend is in [`backend/`](backend/README.md).
+**Status:** research complete; Go ingestion backend in [`backend/`](backend/README.md); Three.js globe in [`frontend/`](frontend/README.md).
 
 | Read this | For |
 |---|---|
@@ -14,3 +14,4 @@ Network Intelligence & Sovereignty: live traceroute paths on a 3D globe, with su
 | `data/raw/` + `data/MANIFEST.json` | Downloaded dataset snapshot (2026-11-02) with checksums |
 | `scripts/research/fetch_datasets.sh` | Re-download everything (keyed sources via env vars) |
 | [backend/](backend/README.md) | Go ingestion service: concurrent traceroutes → pipeline → PacketJourney JSON |
+| [frontend/](frontend/README.md) | Three.js globe: instanced latency-coloured arcs, hop picking, camera fly-to |
