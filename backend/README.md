@@ -9,7 +9,7 @@ Runs concurrent traceroutes, turns every hop into a structured payload, infers t
              └───────┬─────────────────────────────┬───────────────┘
                      │ traceroute.Tracer           │ pipeline.Pipeline
                      ▼                             ▼
-   traceroute.Engine (raw ICMP, shared      normalize → resolve → infer_infrastructure
+   traceroute.Engine (raw ICMP, shared      normalize → resolve → classify → infer_infrastructure
    listener + demux, ICMP/UDP, v4/v6,         → compliance → persist
    global pps limiter)                              │
                                                     ▼
@@ -24,8 +24,53 @@ Runs concurrent traceroutes, turns every hop into a structured payload, infers t
 | `internal/ingest` | **Ingestion coordinator.** Validation, bounded queue (`ErrQueueFull` → HTTP 429), worker pool, coalescing of identical in-flight requests, per-trace timeout, partial-trace handling, subscriber fan-out, graceful drain. |
 | `internal/pipeline` | **Pipeline stages.** `normalize` (per-TTL hop, ECMP siblings, RTT min/avg/max/stdev/jitter, loss), `resolve` (ASN, concurrent reverse DNS, geolocation with a speed-of-light RTT check, roles), `infer_infrastructure` (medium + ranked subsea cables, health colour), `compliance` (boolean border flags, verdict, alerts), `persist`. Required stages abort; enrichment stages record errors and continue. |
 | `internal/store` | **Mock database service layer.** `ReferenceStore` + `JourneyRepository` interfaces with in-memory implementations. Seeded from real data (iptoasn ranges, TeleGeography cables, MNO/cloud ASNs, policies); `LoadDataDir` adds the full research snapshot (~580k IP ranges, 690 cables, ~5k AWS/GCP region prefixes, Natural Earth countries, compliance zones) in about 1 s. Swap in PostGIS later without touching the pipeline. |
+| `internal/classify` | **Data classification at ingestion.** Rules tag traffic with data classes (`payment_system_data`, `eu_personal_data`, …). See below. |
+| `internal/bridge` | Sends classified journeys to the compliance engine (in-process or a remote `complianced`), which raises alerts into its operational stream. |
 | `internal/api` | HTTP API + Server-Sent Events stream. |
 | `schema/` | `packet_journey.schema.json` (JSON Schema 2020-12, strict), embedded and used by `schema.Validate`. Example output: `schema/examples/`. |
+
+## Data classification at ingestion (`internal/classify`)
+
+Every journey carries `metadata.data_classification`: which data classes the traced traffic carries, so the compliance engine knows which sovereignty profiles apply (`payment_system_data` → RBI localisation, `eu_personal_data` → GDPR Chapter V, …).
+
+```json
+"data_classification": {"labels": ["payment_system_data"], "source": "rules", "rule_ids": ["india-payment-apps"], "app": "upi-payments", "port": 443}
+```
+
+- **Explicit labels win.** A trace request's `data_classifications` are used as given (`source: "request"`).
+- **Otherwise rules match** on what ingestion knows about the flow, never on payload: destination hostname glob (`*.razorpay.com` also matches `razorpay.com`), destination CIDR, ASN, cloud provider, port, and the agent's `app` label and TLS `sni`. Within a field any value matches; across fields all must match. Every matching rule adds its labels (`source: "rules"`, with `rule_ids`).
+- **Untagged traffic** gets `labels: []`, `source: "none"`. No profile governs it; it is not evaluated.
+- The `classify` stage runs after `resolve`, so rules can use the destination's ASN and cloud.
+- Identical requests with different labels or flow context are never coalesced into one job.
+
+Rules live in a JSON file (`-rules`, default `classification-rules.json`, created from the examples in `internal/classify/defaults.go`) and are changed at runtime without a restart:
+
+| Endpoint | |
+|---|---|
+| `GET /v1/classification/rules` | current rule set (`ETag` = version) |
+| `PUT /v1/classification/rules` | replace, validated and saved atomically; admin bearer token (`INGEST_ADMIN_TOKENS="actor:token"`), `If-Match: "<version>"` optional |
+| `POST /v1/classification/test` | dry run: `{"target":"api.razorpay.com","port":443}` → labels and matching rules |
+
+**Alerts from live traffic.** With `-compliance-url http://complianced:8090` (token in `COMPLIANCE_TOKEN`), ingestd sends every classified journey to the compliance engine, which evaluates it and **publishes** `ComplianceViolationAlert`s to `/v1/compliance/alerts` and its SSE stream. The globe's Business Mode, by contrast, only previews.
+
+```bash
+sudo ./ingestd -data-dir ../data -app upi-payments -port 443 -compliance-url http://localhost:8090 razorpay.com
+```
+
+## All-in-one server (`cmd/packetpulse`) and test deployment
+
+`packetpulse` runs ingestion, the compliance engine and the globe on one port: `/v1/compliance/*` (compliance API), `/v1/*` (ingestion API), `/healthz`, and `/` (the built globe). Classified journeys go straight to the in-process engine, so alerts from live traffic appear in `/v1/compliance/alerts`.
+
+```bash
+docker build -t packetpulse .
+docker run --rm -p 8080:8080 -e PACKETPULSE_ADMIN_TOKENS="me:$(openssl rand -hex 24)" packetpulse
+```
+
+- `POST /v1/traces` always needs a bearer token (`PACKETPULSE_TRACE_TOKENS` or `PACKETPULSE_ADMIN_TOKENS`), and targets resolving to private, loopback, CGNAT or link-local addresses are refused (`-public-targets-only`, on by default). An internet-facing host must not run traceroutes for anonymous callers or map its own network.
+- Admin tokens also manage compliance profiles and classification rules. `PACKETPULSE_READ_TOKENS`, if set, protects compliance reads.
+- `/healthz` reports `"tracing": false` when the host can't open raw ICMP sockets. The globe and compliance API still work then.
+- The image seeds the recorded example journey (Jio Mumbai → AWS Frankfurt, tagged `payment_system_data`), so the globe and alert stream are not empty before the first live trace. Remove `-seed` from the entrypoint for a clean start.
+- State (profiles, rules, journeys, alerts) is in memory and `/tmp`, so it resets when the container restarts.
 
 ## Infrastructure enrichment (`internal/enrich`, `cmd/infraenrich`)
 
@@ -116,13 +161,13 @@ curl -XPOST localhost:8080/v1/traces -d '{"target":"1.1.1.1","protocol":"udp","p
 
 | Endpoint | |
 |---|---|
-| `POST /v1/traces` | `{target, protocol, ip_version, policy_id, access_type, first_ttl, max_hops, probes_per_hop, timeout_ms}` → 202 + job |
+| `POST /v1/traces` | `{target, protocol, ip_version, policy_id, access_type, first_ttl, max_hops, probes_per_hop, timeout_ms, data_classifications, app, sni, port}` → 202 + job |
 | `GET /v1/traces/{id}` | job status (`queued`/`running`/`done`/`failed`, warning for partial traces) |
 | `GET /v1/journeys/{id}` · `GET /v1/journeys?destination=&verdict=&since=&limit=` | stored journeys |
 | `GET /v1/stream` | SSE, one `journey` event per finished trace |
 | `GET /v1/policies` · `GET /v1/schema` · `GET /healthz` | metadata |
 
-Useful flags: `-workers` (concurrent traces, default 8), `-pps` (global probe rate, default 200), `-protocol icmp|udp`, `-access cellular`, `-no-rdns`, `-list-policies`.
+Useful flags: `-workers` (concurrent traces, default 8), `-pps` (global probe rate, default 200), `-protocol icmp|udp`, `-access cellular`, `-no-rdns`, `-list-policies`, `-rules`, `-classify a,b` / `-app` / `-sni` / `-port` (batch-mode classification), `-compliance-url`, `-public-targets-only`.
 
 ## Test
 

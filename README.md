@@ -14,4 +14,5 @@ Network Intelligence & Sovereignty: live traceroute paths on a 3D globe, with su
 | `data/raw/` + `data/MANIFEST.json` | Downloaded dataset snapshot (2026-11-02) with checksums |
 | `scripts/research/fetch_datasets.sh` | Re-download everything (keyed sources via env vars) |
 | [backend/](backend/README.md) | Go ingestion service: concurrent traceroutes → pipeline → PacketJourney JSON |
-| [frontend/](frontend/README.md) | Three.js globe: instanced latency-coloured arcs, hop picking, camera fly-to |
+| [frontend/](frontend/README.md) | Three.js globe: instanced latency-coloured arcs, hop picking, camera fly-to, Business Mode |
+| `Dockerfile` | All-in-one test deployment (`backend/cmd/packetpulse`): ingestion with data classification, compliance engine and globe on one port |

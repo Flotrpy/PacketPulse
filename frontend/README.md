@@ -35,6 +35,10 @@ The **Business Mode** button checks every path on the globe with the compliance 
 - **Alerts:** a pulsing marker at each territory entry (dashed when suspected), and a panel listing alerts with the law (e.g. GDPR Chapter V), entry time and recommended reroute. Click an alert to fly there. Selecting a hop filters the panel to its path, and the hop inspector shows its jurisdiction and verdict.
 - **Law Directory tab:** the curated laws (`data/curated/regulations/jurisdictions.json`) for the territories the traffic touches.
 
+![Live journey evaluated with its ingestion tag (payment_system_data -> RBI)](docs/business-mode-live-tags.png)
+
+**Data class.** The default, **per-path tags (from ingestion)**, evaluates each live path with the `data_classification` labels ingestion assigned to it (see `backend/README.md`). Untagged paths are not governed by any profile and stay grey; the overlay shows the jurisdictions of every profile that governs a tag on screen. Picking a class instead evaluates every path as if it carried that class (a what-if view, and the mode for simulated paths, which carry no tags). URL: `&class=tags` or `&class=eu_personal_data`; `?live=1&business=1` starts in tag mode.
+
 The globe uses the engine's preview mode (`/v1/compliance/evaluate/batch` with `publish: false`): it never raises alerts into the operational stream. Only new or rerouted paths are re-evaluated; latency-only updates can't change compliance. **Refresh** picks up profile changes admins make through the API.
 
 Run it locally:
@@ -46,6 +50,8 @@ cd backend && go run ./cmd/complianced -listen :8090 -data-dir ../data
 ```bash
 cd frontend && npm run dev
 ```
+
+Or everything on one port: `docker build -t packetpulse . && docker run -p 8080:8080 packetpulse` from the repo root, then `http://localhost:8080/?live=1&business=1`.
 
 Then open `http://localhost:5173/?example=1&business=1` (or `?demo=300&business=1&class=eu_personal_data`). Vite proxies `/v1/compliance` to :8090. In production, serve the globe from the same origin or start complianced with `-cors-origins https://your-globe`.
 
