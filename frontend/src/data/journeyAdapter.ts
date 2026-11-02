@@ -34,6 +34,7 @@ interface JSegment {
 export interface PacketJourney {
   journey_id: string;
   metadata: {
+    timestamp: string;
     destination: { ip: string; hostname?: string; location?: JLocation };
     source: { ip: string; location?: JLocation };
   };
@@ -52,7 +53,7 @@ export function journeyToPath(j: PacketJourney): PathInput | null {
   const hops: HopInput[] = [];
   const src = j.metadata.source.location;
   if (src) {
-    hops.push({ lat: src.lat, lon: src.lon, rttMs: 0, hopNumber: 0, ip: j.metadata.source.ip, city: src.city, country: src.country_iso2 });
+    hops.push({ lat: src.lat, lon: src.lon, rttMs: 0, hopNumber: 0, ip: j.metadata.source.ip, city: src.city, country: src.country_iso2, locationConfidence: src.confidence });
   }
 
   let carriedLoss = 0;
@@ -87,6 +88,7 @@ export function journeyToPath(j: PacketJourney): PathInput | null {
       country: loc.country_iso2,
       cable: seg?.subsea_cable?.name,
       borderViolation: h.border_violation,
+      locationConfidence: loc.confidence,
     });
     carriedLoss = 0;
     carriedMedium = undefined;
@@ -97,9 +99,9 @@ export function journeyToPath(j: PacketJourney): PathInput | null {
   const last = hops[hops.length - 1];
   if (dst && dst.confidence >= MIN_DRAW_CONFIDENCE && (!last || last.lat !== dst.lat || last.lon !== dst.lon)) {
     const lastHop = j.hops[j.hops.length - 1];
-    hops.push({ lat: dst.lat, lon: dst.lon, rttMs: lastHop?.rtt_ms.min ?? last?.rttMs ?? 0, ip: j.metadata.destination.ip, city: dst.city, country: dst.country_iso2 });
+    hops.push({ lat: dst.lat, lon: dst.lon, rttMs: lastHop?.rtt_ms.min ?? last?.rttMs ?? 0, ip: j.metadata.destination.ip, city: dst.city, country: dst.country_iso2, locationConfidence: dst.confidence });
   }
 
   if (hops.length < 2) return null;
-  return { id: j.journey_id, hops, label: j.metadata.destination.hostname ?? j.metadata.destination.ip, verdict: j.compliance.verdict };
+  return { id: j.journey_id, hops, label: j.metadata.destination.hostname ?? j.metadata.destination.ip, verdict: j.compliance.verdict, startedAt: j.metadata.timestamp };
 }

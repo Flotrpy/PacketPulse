@@ -28,6 +28,19 @@ export interface HopInput {
   /** cable name when medium === "subsea_cable" */
   cable?: string;
   borderViolation?: boolean;
+  /** 0..1 confidence in lat/lon (GeoIP ~0.7, router hostname ~0.85, device fix 1). */
+  locationConfidence?: number;
+  /** Cable landing stations crossed on the link arriving at this hop. */
+  landings?: LandingInput[];
+}
+
+export interface LandingInput {
+  name: string;
+  country: string; // ISO2
+  lat: number;
+  lon: number;
+  /** Probability that traffic actually lands here (cable-match certainty). */
+  confidence: number;
 }
 
 export interface PathInput {
@@ -35,6 +48,8 @@ export interface PathInput {
   hops: HopInput[];
   label?: string;
   verdict?: string;
+  /** When the trace started (RFC 3339): compliance entry times are relative to it. */
+  startedAt?: string;
 }
 
 /** A hop the user picked. */

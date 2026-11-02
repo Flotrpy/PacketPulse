@@ -20,6 +20,8 @@ import { ArcLayer } from "./render/ArcLayer";
 import { MEDIUM_CODE } from "./render/arcShader";
 import { Earth } from "./render/Earth";
 import { HopLayer } from "./render/HopLayer";
+import { AlertLayer, type AlertMarker } from "./render/AlertLayer";
+import type { GeoJSONFeatureCollection } from "./render/Earth";
 
 export interface PacketGlobeOptions {
   container: HTMLElement;
@@ -45,6 +47,21 @@ interface PathRecord {
   hopSlots: number[];
   birth: number;
   phase: number;
+  /** Business Mode status per hop (core/compliance.ts codes); cleared on reroute. */
+  compliance?: PathCompliance;
+}
+
+/** Compliance codes for one path: per hop, plus per segment end (a segment can
+ *  touch a non-permitted landing station between two compliant hops). */
+export interface PathCompliance {
+  hops: number[];
+  segmentEnds?: number[];
+}
+
+/** What changed when paths were added, rerouted or removed. */
+export interface PathChange {
+  rerouted: string[]; // new paths or new geometry: compliance must be re-evaluated
+  removed: string[];
 }
 
 export interface GlobeStats {
@@ -64,6 +81,11 @@ export class PacketGlobe {
   readonly earth = new Earth();
   readonly arcs: ArcLayer;
   readonly hops: HopLayer;
+  readonly alerts = new AlertLayer();
+  private business = false;
+  private changeListeners = new Set<(c: PathChange) => void>();
+  private pendingChange: PathChange = { rerouted: [], removed: [] };
+  private changeTimer = 0;
 
   private paths = new Map<string, PathRecord>();
   private hopOwner: { pathId: string; hopIndex: number }[] = [];
@@ -93,7 +115,7 @@ export class PacketGlobe {
 
     this.arcs = new ArcLayer({ capacity: opts.arcCapacity, widthPx: opts.arcWidthPx, cycleSeconds: opts.pulseCycleSeconds });
     this.hops = new HopLayer(opts.hopCapacity, opts.hopSizePx);
-    this.scene.add(this.earth.group, this.arcs.mesh, this.hops.points);
+    this.scene.add(this.earth.group, this.arcs.mesh, this.hops.points, this.alerts.points);
 
     if (opts.landUrl !== null) {
       this.earth.loadLand(opts.landUrl ?? "data/land.json").catch((err) => console.warn("PacketGlobe: basemap not loaded", err));
@@ -141,6 +163,7 @@ export class PacketGlobe {
     rec.dirs = dirs;
     rec.health = health;
     if (existing) rec.birth = now; // redraw-in on reroute
+    rec.compliance = undefined;
     this.resizeSlots(rec, dirs.length);
 
     const segCount = dirs.length - 1;
@@ -165,6 +188,7 @@ export class PacketGlobe {
       this.hopOwner[slot] = { pathId: input.id, hopIndex: i };
     });
     this.paths.set(input.id, rec);
+    this.queueChange(input.id, false);
     if (this.selection?.pathId === input.id) {
       this.selection.hopIndex = Math.min(this.selection.hopIndex, dirs.length - 1);
       this.applyHighlight(input.id, true);
@@ -178,7 +202,84 @@ export class PacketGlobe {
     rec.arcSlots.forEach((s) => this.arcs.release(s));
     rec.hopSlots.forEach((s) => this.hops.release(s));
     this.paths.delete(id);
+    this.queueChange(id, true);
     if (this.selection?.pathId === id) this.clearSelection();
+  }
+
+  // ---------------- Business Mode ----------------
+
+  /** Colour arcs and hops by compliance instead of latency, and show the jurisdiction overlay and alert markers. */
+  setBusinessMode(on: boolean): void {
+    this.business = on;
+    this.arcs.setBusinessMode(on);
+    this.hops.setBusinessMode(on);
+    this.earth.setBusinessMode(on);
+    this.alerts.points.visible = on;
+  }
+
+  get businessMode(): boolean {
+    return this.business;
+  }
+
+  /** Apply compliance codes to a path's hops and segments (see PathCompliance). */
+  setPathCompliance(pathId: string, c: PathCompliance): void {
+    const rec = this.paths.get(pathId);
+    if (!rec || c.hops.length !== rec.hopSlots.length) return;
+    rec.compliance = c;
+    rec.hopSlots.forEach((slot, i) => this.hops.setCompliance(slot, c.hops[i]));
+    rec.arcSlots.forEach((slot, k) => this.arcs.setCompliance(slot, c.hops[k], Math.max(c.hops[k + 1], c.segmentEnds?.[k] ?? 0)));
+    this.emitIfSelected(pathId);
+  }
+
+  getPathCompliance(pathId: string): PathCompliance | undefined {
+    return this.paths.get(pathId)?.compliance;
+  }
+
+  clearCompliance(): void {
+    for (const [, rec] of this.paths) {
+      rec.compliance = undefined;
+      rec.hopSlots.forEach((s) => this.hops.setCompliance(s, 0));
+      rec.arcSlots.forEach((s) => this.arcs.setCompliance(s, 0, 0));
+    }
+    this.alerts.setMarkers([]);
+  }
+
+  setAlertMarkers(markers: AlertMarker[]): void {
+    this.alerts.setMarkers(markers);
+  }
+
+  setRegionOverlay(permitted: GeoJSONFeatureCollection[], prohibited: GeoJSONFeatureCollection[]): void {
+    this.earth.setRegionOverlay(permitted, prohibited);
+  }
+
+  /** Fly the camera to any coordinate (e.g. an alert's territory entry point). */
+  flyToPoint(lat: number, lon: number, distance = 1.6): Promise<void> {
+    return this.controls.flyTo(lat, lon, distance);
+  }
+
+  /**
+   * Listen for path changes. Notifications are batched (~150 ms) so a
+   * simulator tick that reroutes dozens of paths produces one callback.
+   * Latency-only updates are not reported: they cannot change compliance.
+   */
+  onPathsChanged(cb: (c: PathChange) => void): () => void {
+    this.changeListeners.add(cb);
+    return () => this.changeListeners.delete(cb);
+  }
+
+  private queueChange(id: string, removed: boolean): void {
+    if (this.changeListeners.size === 0) return;
+    (removed ? this.pendingChange.removed : this.pendingChange.rerouted).push(id);
+    if (this.changeTimer) return;
+    this.changeTimer = window.setTimeout(() => {
+      const c = this.pendingChange;
+      this.pendingChange = { rerouted: [], removed: [] };
+      this.changeTimer = 0;
+      const removedSet = new Set(c.removed);
+      c.rerouted = [...new Set(c.rerouted)].filter((id) => this.paths.has(id));
+      c.removed = [...removedSet].filter((id) => !this.paths.has(id));
+      for (const l of this.changeListeners) l(c);
+    }, 150);
   }
 
   clear(): void {
@@ -297,6 +398,8 @@ export class PacketGlobe {
     this.controls.dispose();
     this.arcs.dispose();
     this.hops.dispose();
+    this.alerts.dispose();
+    clearTimeout(this.changeTimer);
     this.earth.dispose();
     this.renderer.dispose();
     el.remove();
@@ -374,6 +477,7 @@ export class PacketGlobe {
     const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     this.arcs.update(t, size.x, size.y);
     this.hops.update(t, this.renderer.getPixelRatio());
+    if (this.business) this.alerts.update(t, this.renderer.getPixelRatio());
     this.renderer.render(this.scene, this.camera);
 
     this.fpsFrames++;

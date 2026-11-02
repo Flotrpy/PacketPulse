@@ -244,6 +244,7 @@ export class Simulator {
         hopNumber: i,
         city: h.hub.city,
         country: h.hub.cc,
+        locationConfidence: 0.85, // simulated routers are placed at known hub cities
       };
     });
     const last = p.hops[p.hops.length - 1].hub;
