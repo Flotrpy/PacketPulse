@@ -1,6 +1,7 @@
 /**
  * Demo shell around PacketGlobe.
- *   ?demo=500      simulated load (default 300)
+ *   (default)      live: your traces (ppagent) and other journeys from the backend
+ *   ?demo=500      simulated load
  *   ?example=1     the backend's example journey (Mumbai -> Frankfurt)
  *   ?live=1        follow the Go backend's /v1/stream (vite proxies /v1 to :8080)
  *   ?business=1    start in Business Mode (needs complianced; vite proxies /v1/compliance to :8090)
@@ -15,6 +16,7 @@ import { BusinessMode, TAGS } from "./business/BusinessMode";
 import { complianceCss, statusCode } from "./core/compliance";
 import { Simulator } from "./data/simulator";
 import { connectBackend } from "./data/streamClient";
+import { TracePanel } from "./agent/TracePanel";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const container = $("#globe");
@@ -77,6 +79,11 @@ function startLive(): void {
     onStatus: (s, detail) => (statusEl.textContent = `backend: ${s}${detail ? ` – ${detail}` : ""}`),
   });
 }
+
+// Traces from the user's own computer (ppagent) arrive on the live stream.
+new TracePanel($("#trace"), globe, () => {
+  if (!stopLive) startLive();
+});
 
 // ---------- inspector ----------
 
@@ -178,10 +185,11 @@ window.addEventListener("keydown", (e) => {
 
 const q = new URLSearchParams(location.search);
 if (q.has("business")) {
-  const cls = q.get("class") ?? (q.has("live") ? "tags" : "");
+  const cls = q.get("class") ?? (q.has("demo") || q.has("example") ? "" : "tags");
   if (cls) void business.setClassification(cls === "tags" ? TAGS : cls);
   void toggleBusiness(true);
 }
-if (q.has("live")) startLive();
-else if (q.has("example")) void loadExample();
-else startDemo(Number(q.get("demo")) || 300);
+// Default: live traces (yours, from ppagent). ?demo=N simulates, ?example=1 shows the recorded journey.
+if (q.has("example")) void loadExample();
+else if (q.has("demo")) startDemo(Number(q.get("demo")) || 300);
+else startLive();

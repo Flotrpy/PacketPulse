@@ -73,7 +73,21 @@
       #business .pill.loc-strict { background: rgba(255, 59, 59, 0.2); color: #ffb3b3; }
       #business .pill.loc-conditional, #business .pill.loc-sectoral { background: rgba(255, 179, 31, 0.18); color: #ffe0a3; }
       #business .pill.loc-none { background: rgba(26, 255, 140, 0.12); color: #9ff7c8; }
+      #trace { top: 232px; left: 16px; width: 300px; }
+      #trace h2 { font-size: 13px; margin: 0 0 6px; letter-spacing: 0.06em; text-transform: uppercase; color: #9fd0ff; }
+      #trace .tp-form { display: grid; gap: 5px; margin: 6px 0; }
+      #trace input { background: #0b1626; color: var(--text); border: 1px solid var(--border); border-radius: 5px; font: inherit; padding: 4px 6px; }
+      #trace .ok { color: var(--green); }
+      #trace .warn { color: var(--amber); }
+      #trace .muted { color: var(--muted); }
+      #trace .tp-link { color: #8fd0ff; font-size: 12px; }
+      #trace .tp-attr { font-size: 10px; margin-top: 6px; }
+      #trace .tp-attr a { color: var(--muted); }
+      #trace .tp-setup { display: none; font-size: 11px; max-height: 40vh; overflow-y: auto; }
+      #trace .tp-setup.open { display: block; }
+      #trace pre { white-space: pre-wrap; word-break: break-all; background: #050b14; padding: 6px; border-radius: 4px; margin: 4px 0 8px; }
       @media (max-width: 640px) {
+        #trace { left: 16px; right: 16px; width: auto; top: 200px; }
         #business { left: 16px; right: 16px; width: auto; max-height: 45vh; }
         #hud { left: 16px; right: 16px; top: 16px; }
         #inspector { left: 16px; right: 16px; top: auto; bottom: 64px; width: auto; }
@@ -100,6 +114,7 @@
       </div>
       <div id="status"></div>
     </div>
+    <div id="trace" class="panel"></div>
     <div id="inspector" class="panel"></div>
     <div id="business" class="panel"></div>
     <div id="legend" class="panel"><span>fast</span><div class="bar"></div><span>congested / loss</span></div>
