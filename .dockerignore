@@ -1,0 +1,9 @@
+.git
+frontend/node_modules
+frontend/dist
+backend/ingestd
+data/raw/dbip
+data/raw/maxmind
+data/raw/ipinfo
+data/raw/opencellid
+**/__pycache__
