@@ -11,6 +11,8 @@ import (
 // MemoryReference is the in-memory ReferenceStore. Writes (seeding/loading)
 // happen before serving; reads are lock-protected so hot reloads are safe.
 type MemoryReference struct {
+	geoFallback func(netip.Addr) (GeoHit, bool)
+
 	mu         sync.RWMutex
 	asn        rangeTable
 	geo        []GeoHit // sorted by prefix length, longest first
@@ -129,13 +131,26 @@ func (r *MemoryReference) LookupASN(addr netip.Addr) (ASNInfo, bool) {
 func (r *MemoryReference) LookupGeo(addr netip.Addr) (GeoHit, bool) {
 	addr = addr.Unmap()
 	r.mu.RLock()
-	defer r.mu.RUnlock()
+	fallback := r.geoFallback
 	for _, g := range r.geo {
 		if g.Prefix.Contains(addr) {
+			r.mu.RUnlock()
 			return g, true
 		}
 	}
+	r.mu.RUnlock()
+	if fallback != nil {
+		return fallback(addr)
+	}
 	return GeoHit{}, false
+}
+
+// SetGeoFallback plugs in a full IP geolocation database (e.g. DB-IP Lite or
+// MaxMind GeoLite2 City) for addresses the curated prefixes don't cover.
+func (r *MemoryReference) SetGeoFallback(f func(netip.Addr) (GeoHit, bool)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.geoFallback = f
 }
 
 // MatchHostname looks for a known city token in a router hostname, e.g.

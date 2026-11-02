@@ -319,3 +319,33 @@ func exampleRules(t *testing.T) *classify.Classifier {
 	}
 	return c
 }
+
+// Anycast: the database puts 1.1.1.1 in Brisbane, but it answers a London
+// host in 3 ms, so that location is physically impossible and is dropped.
+func TestAnycastDestinationNotPlacedByDatabase(t *testing.T) {
+	ref := store.NewSeededReference()
+	ref.SetGeoFallback(func(a netip.Addr) (store.GeoHit, bool) {
+		if a == netip.MustParseAddr("1.1.1.1") {
+			return store.GeoHit{Prefix: netip.PrefixFrom(a, 32), City: "Brisbane", CountryISO2: "AU", Lat: -27.47, Lon: 153.03, AccuracyKM: 50}, true
+		}
+		return store.GeoHit{}, false
+	})
+	london := &model.Location{Lat: 51.51, Lon: -0.13, City: "London", CountryISO2: "GB", AccuracyKM: 25, Method: "prefix_db", Confidence: 0.7}
+	now := time.Now()
+	dst := netip.MustParseAddr("1.1.1.1")
+	raw := &traceroute.RawTrace{Target: dst, Source: netip.MustParseAddr("192.168.1.20"), Options: traceroute.Options{}.WithDefaults(),
+		StartedAt: now, FinishedAt: now, Reached: true, DestinationTTL: 2, Probes: []traceroute.ProbeResult{
+			{TTL: 1, Responded: true, From: netip.MustParseAddr("192.168.1.1"), Kind: traceroute.ReplyTimeExceeded, RTT: time.Millisecond, SentAt: now},
+			{TTL: 2, Responded: true, From: dst, Kind: traceroute.ReplyEcho, RTT: 3 * time.Millisecond, SentAt: now},
+		}}
+	j, err := Default(ref, store.NewMemoryRepository(1), nil, nil).Run(context.Background(), raw, Request{Target: "1.1.1.1", SourceLocation: london})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := j.Metadata.Destination.Location; l != nil {
+		t.Fatalf("destination placed at %s, %s despite a 3 ms RTT", l.City, l.CountryISO2)
+	}
+	if l := j.Hops[1].Location; l != nil && l.CountryISO2 == "AU" {
+		t.Fatalf("destination hop placed in Australia")
+	}
+}

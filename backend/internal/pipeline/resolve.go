@@ -59,6 +59,19 @@ func (r Resolve) Process(ctx context.Context, s *State) error {
 	}
 
 	src := j.Metadata.Source.Location
+	// The destination's database location must be reachable at light speed
+	// in its RTT too: anycast services (1.1.1.1, 8.8.8.8, CDNs) answer from
+	// a nearby site while databases list a single registered city.
+	if dl := j.Metadata.Destination.Location; dl != nil && src != nil {
+		if rtt := destMinRTT(s); rtt > 0 {
+			if !r.feasible(src, dl, rtt) {
+				j.Metadata.Destination.Location = nil
+			}
+		} else {
+			// Not reached: nothing bounds the distance, so don't draw it as fact.
+			dl.Confidence = min(dl.Confidence, 0.4)
+		}
+	}
 	seenMobile := false
 	for i := range j.Hops {
 		h := &j.Hops[i]
@@ -136,16 +149,27 @@ func (r Resolve) locate(addr netip.Addr, h *model.Hop, src *model.Location, minR
 		}
 	}
 	for _, c := range cands {
-		if src == nil || minRTT <= 0 {
-			return c
-		}
-		// A reply cannot come from farther than light reaches in minRTT/2.
-		maxKM := minRTT/2*fiberKMPerMS + c.AccuracyKM + src.AccuracyKM + r.MinRTTSlack
-		if haversineKM(src.Lat, src.Lon, c.Lat, c.Lon) <= maxKM {
+		if src == nil || minRTT <= 0 || r.feasible(src, c, minRTT) {
 			return c
 		}
 	}
 	return nil
+}
+
+// feasible: a reply cannot come from farther than light in fiber reaches in minRTT/2.
+func (r Resolve) feasible(src, c *model.Location, minRTT float64) bool {
+	maxKM := minRTT/2*fiberKMPerMS + c.AccuracyKM + src.AccuracyKM + r.MinRTTSlack
+	return haversineKM(src.Lat, src.Lon, c.Lat, c.Lon) <= maxKM
+}
+
+// destMinRTT is the min RTT of the hop that answered as the destination (0 if none).
+func destMinRTT(s *State) float64 {
+	for i, h := range s.Journey.Hops {
+		if h.Role == "destination" && h.Responded && s.hopMinMS[i] > 0 {
+			return s.hopMinMS[i]
+		}
+	}
+	return 0
 }
 
 func (r Resolve) reverseDNS(ctx context.Context, s *State) {
