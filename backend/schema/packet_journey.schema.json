@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packetpulse.dev/schemas/ingest/packet-journey.schema.json",
+  "title": "PacketJourney (ingestion contract)",
+  "description": "One traceroute from a source agent to a destination, as emitted by the PacketPulse ingestion backend. Four sections: packet metadata, hop hierarchy, infrastructure layer, compliance flags. Extends conceptually docs/schemas/packet-journey.schema.json (the enriched design contract).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "journey_id", "metadata", "hops", "infrastructure", "compliance", "pipeline"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "journey_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "metadata": {"$ref": "#/$defs/Metadata"},
+    "hops": {"type": "array", "items": {"$ref": "#/$defs/Hop"}},
+    "infrastructure": {"$ref": "#/$defs/Infrastructure"},
+    "compliance": {"$ref": "#/$defs/Compliance"},
+    "pipeline": {"$ref": "#/$defs/PipelineTrace"}
+  },
+  "$defs": {
+    "IP": {"type": "string", "anyOf": [{"format": "ipv4"}, {"format": "ipv6"}]},
+    "ISO2": {"type": "string", "pattern": "^[A-Z]{2}$"},
+
+    "Metadata": {
+      "description": "Packet metadata: when, how, from where, to where.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timestamp", "completed_at", "protocol", "ip_version", "agent_id", "source", "destination", "probe", "reached_destination", "duration_ms"],
+      "properties": {
+        "timestamp": {"type": "string", "format": "date-time", "description": "When the first probe was sent (UTC)."},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "protocol": {"enum": ["icmp", "udp"]},
+        "ip_version": {"enum": [4, 6]},
+        "agent_id": {"type": "string"},
+        "source": {"$ref": "#/$defs/Endpoint"},
+        "destination": {"$ref": "#/$defs/Endpoint"},
+        "probe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["first_ttl", "max_hops", "probes_per_hop", "timeout_ms"],
+          "properties": {
+            "first_ttl": {"type": "integer", "minimum": 1},
+            "max_hops": {"type": "integer", "minimum": 1, "maximum": 64},
+            "probes_per_hop": {"type": "integer", "minimum": 1, "maximum": 10},
+            "timeout_ms": {"type": "number", "exclusiveMinimum": 0},
+            "dst_port_base": {"type": "integer", "minimum": 1, "maximum": 65535}
+          }
+        },
+        "reached_destination": {"type": "boolean"},
+        "duration_ms": {"type": "number", "minimum": 0}
+      }
+    },
+
+    "Endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ip"],
+      "properties": {
+        "ip": {"type": "string"},
+        "hostname": {"type": "string"},
+        "asn": {"type": "integer", "minimum": 1},
+        "as_org": {"type": "string"},
+        "location": {"$ref": "#/$defs/Location"},
+        "cloud_provider": {"enum": ["aws", "gcp", "azure", "oracle", "cloudflare", "akamai", "fastly"]},
+        "access_type": {"enum": ["wired", "wifi", "cellular", "unknown"]}
+      }
+    },
+
+    "Location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lat", "lon", "country_iso2", "accuracy_km", "method", "confidence"],
+      "properties": {
+        "lat": {"type": "number", "minimum": -90, "maximum": 90},
+        "lon": {"type": "number", "minimum": -180, "maximum": 180},
+        "city": {"type": "string"},
+        "country_iso2": {"$ref": "#/$defs/ISO2"},
+        "accuracy_km": {"type": "number", "minimum": 0},
+        "method": {"enum": ["rdns_hint", "prefix_db", "registry_country", "inherited", "configured"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+
+    "Hop": {
+      "description": "Hop hierarchy: one entry per TTL, in path order.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hop_number", "responded", "address_class", "role", "rtt_ms", "probes_sent", "probes_received", "loss_pct", "border_violation"],
+      "properties": {
+        "hop_number": {"type": "integer", "minimum": 1},
+        "responded": {"type": "boolean"},
+        "ip": {"$ref": "#/$defs/IP"},
+        "alternate_ips": {"type": "array", "items": {"$ref": "#/$defs/IP"}, "description": "Other routers that answered for this TTL (ECMP / load balancing)."},
+        "hostname": {"type": "string"},
+        "asn": {"type": "integer", "minimum": 1},
+        "as_org": {"type": "string"},
+        "registry_country": {"type": "string", "description": "Country of the address-block holder (RIR). Not the physical location."},
+        "address_class": {"enum": ["public", "private", "cgnat", "reserved", "loopback", "link_local", "unknown"]},
+        "role": {"enum": ["lan_gateway", "private", "cgnat", "mno_gateway", "mno_core", "isp", "backbone", "cloud_edge", "destination", "unknown"]},
+        "rtt_ms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["samples", "min", "avg", "max", "stdev", "jitter"],
+          "properties": {
+            "samples": {"type": "array", "items": {"type": "number", "minimum": 0}},
+            "min": {"type": "number", "minimum": 0},
+            "avg": {"type": "number", "minimum": 0},
+            "max": {"type": "number", "minimum": 0},
+            "stdev": {"type": "number", "minimum": 0},
+            "jitter": {"type": "number", "minimum": 0}
+          }
+        },
+        "probes_sent": {"type": "integer", "minimum": 0},
+        "probes_received": {"type": "integer", "minimum": 0},
+        "loss_pct": {"type": "number", "minimum": 0, "maximum": 100},
+        "icmp_type": {"enum": ["time_exceeded", "dest_unreachable", "echo_reply", "port_unreachable"]},
+        "mpls_labels": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 1048575}},
+        "location": {"$ref": "#/$defs/Location"},
+        "border_violation": {"type": "boolean", "description": "True when this hop is confidently located outside the policy's allowed region or in a restricted country."}
+      },
+      "if": {"properties": {"responded": {"const": true}}},
+      "then": {"required": ["ip", "icmp_type"]}
+    },
+
+    "Infrastructure": {
+      "description": "Infrastructure layer: the inferred transport medium for each link between responding hops.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["segments", "media_summary"],
+      "properties": {
+        "segments": {"type": "array", "items": {"$ref": "#/$defs/Segment"}},
+        "media_summary": {"type": "array", "items": {"$ref": "#/$defs/Medium"}, "uniqueItems": true}
+      }
+    },
+
+    "Medium": {"enum": ["lan", "cellular_backhaul", "metro_fiber", "terrestrial_fiber", "subsea_cable", "cloud_backbone", "unknown"]},
+
+    "Segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_hop", "to_hop", "medium", "confidence", "distance_km", "delta_rtt_ms", "min_feasible_rtt_ms", "health", "countries"],
+      "properties": {
+        "from_hop": {"type": "integer", "minimum": 0, "description": "0 = the source host."},
+        "to_hop": {"type": "integer", "minimum": 1},
+        "medium": {"$ref": "#/$defs/Medium"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "distance_km": {"type": "number", "minimum": 0},
+        "delta_rtt_ms": {"type": "number", "minimum": 0},
+        "min_feasible_rtt_ms": {"type": "number", "minimum": 0, "description": "Round trip light needs over distance_km of fiber (204.2 km/ms)."},
+        "health": {"enum": ["green", "amber", "red", "grey"]},
+        "countries": {"type": "array", "items": {"$ref": "#/$defs/ISO2"}},
+        "terrestrial_isp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["asn", "name"],
+          "properties": {"asn": {"type": "integer", "minimum": 1}, "name": {"type": "string"}}
+        },
+        "subsea_cable": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cable_id", "name", "landing_a", "landing_b", "probability", "owner_match", "alternatives"],
+          "properties": {
+            "cable_id": {"type": "string", "description": "TeleGeography cable id."},
+            "name": {"type": "string"},
+            "landing_a": {"type": "string"},
+            "landing_b": {"type": "string"},
+            "probability": {"type": "number", "minimum": 0, "maximum": 1},
+            "owner_match": {"type": "boolean"},
+            "alternatives": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["cable_id", "name", "probability"],
+                "properties": {"cable_id": {"type": "string"}, "name": {"type": "string"}, "probability": {"type": "number", "minimum": 0, "maximum": 1}}
+              }
+            }
+          }
+        },
+        "cellular_backhaul": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["carrier", "cgnat_detected"],
+          "properties": {
+            "carrier": {"type": "string"},
+            "asn": {"type": "integer", "minimum": 1},
+            "country": {"$ref": "#/$defs/ISO2"},
+            "gateway_ip": {"$ref": "#/$defs/IP"},
+            "cgnat_detected": {"type": "boolean"}
+          }
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"medium": {"const": "cellular_backhaul"}}}, "then": {"required": ["cellular_backhaul"]}}
+      ]
+    },
+
+    "Compliance": {
+      "description": "Compliance flags: boolean triggers for regional data-border violations under the selected policy.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "evaluated", "allowed_countries", "flags", "verdict", "countries_traversed", "possible_transit_countries", "violating_hops", "alerts"],
+      "properties": {
+        "policy_id": {"type": "string"},
+        "evaluated": {"type": "boolean"},
+        "allowed_countries": {"type": "array", "items": {"$ref": "#/$defs/ISO2"}},
+        "flags": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["boundary_violation", "left_allowed_region", "destination_outside_region", "transited_restricted_country", "international_subsea_crossing", "unresolved_hops_present"],
+          "properties": {
+            "boundary_violation": {"type": "boolean", "description": "Master trigger: destination outside region, restricted transit, or any exit when the policy treats transit as transfer."},
+            "left_allowed_region": {"type": "boolean"},
+            "destination_outside_region": {"type": "boolean"},
+            "transited_restricted_country": {"type": "boolean"},
+            "international_subsea_crossing": {"type": "boolean"},
+            "unresolved_hops_present": {"type": "boolean"}
+          }
+        },
+        "verdict": {"enum": ["compliant", "risk", "violation", "inconclusive", "not_evaluated"]},
+        "countries_traversed": {"type": "array", "items": {"$ref": "#/$defs/ISO2"}},
+        "possible_transit_countries": {"type": "array", "items": {"$ref": "#/$defs/ISO2"}},
+        "violating_hops": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "alerts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["severity", "rule", "message"],
+            "properties": {
+              "severity": {"enum": ["info", "warning", "critical"]},
+              "rule": {"enum": ["restricted_country", "transit_outside_region", "destination_outside_region", "possible_restricted_transit", "possible_transit_outside_region", "unresolved_hops"]},
+              "country": {"$ref": "#/$defs/ISO2"},
+              "hop_number": {"type": "integer", "minimum": 1},
+              "message": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+
+    "PipelineTrace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stages"],
+      "properties": {
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "duration_ms"],
+            "properties": {
+              "name": {"type": "string"},
+              "duration_ms": {"type": "number", "minimum": 0},
+              "error": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
