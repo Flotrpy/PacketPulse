@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"net/netip"
-	"sort"
 	"time"
 
 	"github.com/flotrpy/packetpulse/backend/internal/model"
@@ -61,87 +60,42 @@ func (Normalize) Process(_ context.Context, s *State) error {
 		j.Metadata.Destination.Hostname = s.Req.Target
 	}
 
-	byTTL := map[int][]traceroute.ProbeResult{}
-	last := 0
-	for _, p := range raw.Probes {
-		byTTL[p.TTL] = append(byTTL[p.TTL], p)
-		if p.Responded && p.TTL > last {
-			last = p.TTL
-		}
-	}
-	if raw.Reached {
-		last = raw.DestinationTTL
-	}
-
-	j.Hops = make([]model.Hop, 0, last)
-	for ttl := raw.Options.FirstTTL; ttl <= last; ttl++ {
-		hop, addr, minMS := buildHop(ttl, byTTL[ttl], raw.Target)
+	sums := raw.Hops()
+	j.Hops = make([]model.Hop, 0, len(sums))
+	for _, hs := range sums {
+		hop, minMS := buildHop(hs, raw.Target)
 		j.Hops = append(j.Hops, hop)
-		s.hopAddr = append(s.hopAddr, addr)
+		s.hopAddr = append(s.hopAddr, hs.Addr)
 		s.hopMinMS = append(s.hopMinMS, minMS)
 	}
 	return nil
 }
 
-func buildHop(ttl int, probes []traceroute.ProbeResult, target netip.Addr) (model.Hop, netip.Addr, float64) {
-	h := model.Hop{HopNumber: ttl, ProbesSent: len(probes), Role: "unknown", AddressClass: "unknown", RTT: model.RTTStats{Samples: []float64{}}}
-	counts := map[netip.Addr]int{}
-	var order []netip.Addr
-	for _, p := range probes {
-		if !p.Responded {
-			continue
-		}
-		h.ProbesReceived++
-		if counts[p.From] == 0 {
-			order = append(order, p.From)
-		}
-		counts[p.From]++
+func buildHop(hs traceroute.HopSummary, target netip.Addr) (model.Hop, float64) {
+	h := model.Hop{HopNumber: hs.TTL, ProbesSent: hs.Sent, ProbesReceived: hs.Received, Role: "unknown", AddressClass: "unknown", RTT: model.RTTStats{Samples: []float64{}}}
+	if hs.Sent > 0 {
+		h.LossPct = round1(100 * float64(hs.Sent-hs.Received) / float64(hs.Sent))
 	}
-	if len(probes) > 0 {
-		h.LossPct = round1(100 * float64(len(probes)-h.ProbesReceived) / float64(len(probes)))
-	}
-	if len(order) == 0 {
-		return h, netip.Addr{}, 0
-	}
-	// Most frequent responder is the hop; others are ECMP/load-balanced siblings.
-	primary := order[0]
-	for _, a := range order[1:] {
-		if counts[a] > counts[primary] {
-			primary = a
-		}
-	}
-	for _, a := range order {
-		if a != primary {
-			h.AlternateIPs = append(h.AlternateIPs, a.String())
-		}
+	if !hs.Addr.IsValid() {
+		return h, 0
 	}
 	h.Responded = true
-	h.IP = primary.String()
-	h.AddressClass = addressClass(primary)
-
-	var samples []float64
-	labels := map[int]bool{}
-	sort.SliceStable(probes, func(a, b int) bool { return probes[a].Attempt < probes[b].Attempt })
-	for _, p := range probes {
-		if !p.Responded || p.From != primary {
-			continue
-		}
-		samples = append(samples, round3(float64(p.RTT)/float64(time.Millisecond)))
-		if h.ICMPType == "" {
-			h.ICMPType = p.Kind.String()
-		}
-		for _, l := range p.MPLSLabels {
-			if !labels[l] {
-				labels[l] = true
-				h.MPLSLabels = append(h.MPLSLabels, l)
-			}
-		}
+	h.IP = hs.Addr.String()
+	h.AddressClass = addressClass(hs.Addr)
+	for _, a := range hs.Alternates {
+		h.AlternateIPs = append(h.AlternateIPs, a.String())
+	}
+	samples := make([]float64, 0, len(hs.RTTs))
+	for _, r := range hs.RTTs {
+		samples = append(samples, round3(float64(r)/float64(time.Millisecond)))
 	}
 	h.RTT = rttStats(samples)
-	if primary == target {
+	h.ICMPType = hs.Kind.String()
+	h.MPLSLabels = hs.MPLSLabels
+	if hs.Addr == target {
 		h.Role = "destination"
 	}
-	return h, primary, h.RTT.Min
+	return h, h.RTT.Min
 }
 
 func rttStats(samples []float64) model.RTTStats {

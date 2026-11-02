@@ -1,5 +1,5 @@
-// Package schema embeds the PacketJourney JSON Schema so the service can
-// serve it (GET /v1/schema) and validate documents against it.
+// Package schema embeds the JSON Schemas so the service can serve them and
+// validate documents against them.
 package schema
 
 import (
@@ -15,35 +15,43 @@ import (
 //go:embed packet_journey.schema.json
 var PacketJourney []byte
 
-const schemaURL = "https://packetpulse.dev/schemas/ingest/packet-journey.schema.json"
+//go:embed infra_map.schema.json
+var InfraMap []byte
 
-var (
-	once     sync.Once
-	compiled *jsonschema.Schema
-	compErr  error
+const (
+	packetJourneyURL = "https://packetpulse.dev/schemas/ingest/packet-journey.schema.json"
+	infraMapURL      = "https://packetpulse.dev/schemas/enrich/infra-map.schema.json"
 )
 
-func compile() (*jsonschema.Schema, error) {
-	once.Do(func() {
-		doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(PacketJourney))
-		if err != nil {
-			compErr = err
-			return
-		}
-		c := jsonschema.NewCompiler()
-		c.AssertFormat()
-		if err := c.AddResource(schemaURL, doc); err != nil {
-			compErr = err
-			return
-		}
-		compiled, compErr = c.Compile(schemaURL)
-	})
-	return compiled, compErr
+type compiled struct {
+	once sync.Once
+	s    *jsonschema.Schema
+	err  error
 }
 
-// Validate marshals v (e.g. a *model.Journey) and checks it against the schema.
-func Validate(v any) error {
-	s, err := compile()
+var schemas = map[string]*compiled{packetJourneyURL: {}, infraMapURL: {}}
+
+func get(url string, src []byte) (*jsonschema.Schema, error) {
+	c := schemas[url]
+	c.once.Do(func() {
+		doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(src))
+		if err != nil {
+			c.err = err
+			return
+		}
+		comp := jsonschema.NewCompiler()
+		comp.AssertFormat()
+		if err := comp.AddResource(url, doc); err != nil {
+			c.err = err
+			return
+		}
+		c.s, c.err = comp.Compile(url)
+	})
+	return c.s, c.err
+}
+
+func validate(url string, src []byte, v any) error {
+	s, err := get(url, src)
 	if err != nil {
 		return fmt.Errorf("compile schema: %w", err)
 	}
@@ -57,3 +65,9 @@ func Validate(v any) error {
 	}
 	return s.Validate(inst)
 }
+
+// Validate checks a PacketJourney (e.g. *model.Journey).
+func Validate(v any) error { return validate(packetJourneyURL, PacketJourney, v) }
+
+// ValidateInfraMap checks an enrichment InfraMap (e.g. *enrich.InfraMap).
+func ValidateInfraMap(v any) error { return validate(infraMapURL, InfraMap, v) }

@@ -108,27 +108,27 @@ func (o Options) Validate() error {
 
 // ProbeResult is one probe packet and its fate.
 type ProbeResult struct {
-	TTL        int
-	Attempt    int
-	SentAt     time.Time
-	RTT        time.Duration
-	Responded  bool
-	From       netip.Addr
-	Kind       ReplyKind
-	Code       int
-	MPLSLabels []int
+	TTL        int           `json:"ttl"`
+	Attempt    int           `json:"attempt"`
+	SentAt     time.Time     `json:"sent_at"`
+	RTT        time.Duration `json:"rtt_ns"`
+	Responded  bool          `json:"responded"`
+	From       netip.Addr    `json:"from,omitzero"`
+	Kind       ReplyKind     `json:"kind"`
+	Code       int           `json:"code,omitempty"`
+	MPLSLabels []int         `json:"mpls_labels,omitempty"`
 }
 
 // RawTrace is the unprocessed output of one traceroute.
 type RawTrace struct {
-	Target         netip.Addr
-	Source         netip.Addr
-	Options        Options
-	StartedAt      time.Time
-	FinishedAt     time.Time
-	Probes         []ProbeResult // sorted by TTL, then attempt
-	Reached        bool
-	DestinationTTL int // 0 if never reached
+	Target         netip.Addr    `json:"target"`
+	Source         netip.Addr    `json:"source,omitzero"`
+	Options        Options       `json:"options"`
+	StartedAt      time.Time     `json:"started_at"`
+	FinishedAt     time.Time     `json:"finished_at"`
+	Probes         []ProbeResult `json:"probes"` // sorted by TTL, then attempt
+	Reached        bool          `json:"reached"`
+	DestinationTTL int           `json:"destination_ttl"` // 0 if never reached
 }
 
 // Tracer runs traceroutes. Implementations must be safe for concurrent use.
