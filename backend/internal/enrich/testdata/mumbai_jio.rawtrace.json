@@ -1,0 +1,233 @@
+{
+ "target": "18.96.32.10",
+ "source": "100.72.14.9",
+ "options": {
+  "protocol": "icmp",
+  "first_ttl": 1,
+  "max_hops": 30,
+  "probes_per_hop": 3,
+  "timeout_ns": 2000000000,
+  "send_interval_ns": 5000000,
+  "dst_port_base": 33434,
+  "payload_size": 32
+ },
+ "started_at": "2026-11-02T13:05:01Z",
+ "finished_at": "2026-11-02T13:05:05Z",
+ "probes": [
+  {
+   "ttl": 1,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 9800000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "100.72.0.1"
+  },
+  {
+   "ttl": 1,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 14200000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "100.72.0.1"
+  },
+  {
+   "ttl": 1,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 21000000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "100.72.0.1"
+  },
+  {
+   "ttl": 2,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 0,
+   "responded": false,
+   "kind": "none"
+  },
+  {
+   "ttl": 2,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 0,
+   "responded": false,
+   "kind": "none"
+  },
+  {
+   "ttl": 2,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 0,
+   "responded": false,
+   "kind": "none"
+  },
+  {
+   "ttl": 3,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 18100000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "49.36.0.1"
+  },
+  {
+   "ttl": 3,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 19400000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "49.36.0.1"
+  },
+  {
+   "ttl": 3,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 21200000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "49.36.0.1"
+  },
+  {
+   "ttl": 4,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 19600000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "180.87.38.1"
+  },
+  {
+   "ttl": 4,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 20300000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "180.87.38.1"
+  },
+  {
+   "ttl": 4,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 21400000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "180.87.38.1"
+  },
+  {
+   "ttl": 5,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 112400000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "80.231.200.1"
+  },
+  {
+   "ttl": 5,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 113900000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "80.231.200.1"
+  },
+  {
+   "ttl": 5,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 118800000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "80.231.200.1"
+  },
+  {
+   "ttl": 6,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 121000000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "80.231.153.1"
+  },
+  {
+   "ttl": 6,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 128699999,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "80.231.153.1"
+  },
+  {
+   "ttl": 6,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 141500000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "80.231.153.1"
+  },
+  {
+   "ttl": 7,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 127900000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "52.93.0.1"
+  },
+  {
+   "ttl": 7,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 129199999,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "52.93.0.1"
+  },
+  {
+   "ttl": 7,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 131000000,
+   "responded": true,
+   "kind": "time_exceeded",
+   "from": "52.93.0.1"
+  },
+  {
+   "ttl": 8,
+   "attempt": 0,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 128600000,
+   "responded": true,
+   "kind": "echo_reply",
+   "from": "18.96.32.10"
+  },
+  {
+   "ttl": 8,
+   "attempt": 1,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 129900000,
+   "responded": true,
+   "kind": "echo_reply",
+   "from": "18.96.32.10"
+  },
+  {
+   "ttl": 8,
+   "attempt": 2,
+   "sent_at": "2026-11-02T13:05:01Z",
+   "rtt_ns": 132199999,
+   "responded": true,
+   "kind": "echo_reply",
+   "from": "18.96.32.10"
+  }
+ ],
+ "reached": true,
+ "destination_ttl": 8
+}

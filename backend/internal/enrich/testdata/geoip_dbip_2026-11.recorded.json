@@ -1,0 +1,101 @@
+{
+  "provider": "dbip-lite-2026-11 (recorded)",
+  "records": [
+    {
+      "ip": "18.96.32.10",
+      "lat": 50.1109,
+      "lon": 8.68213,
+      "has_location": true,
+      "accuracy_km": 50,
+      "city": "Frankfurt am Main",
+      "region": "Hesse",
+      "country_iso2": "DE",
+      "asn": 16509,
+      "as_org": "Amazon.com, Inc.",
+      "sources": {
+        "asn": "maxmind",
+        "location": "maxmind"
+      }
+    },
+    {
+      "ip": "180.87.38.1",
+      "lat": 18.9582,
+      "lon": 72.832,
+      "has_location": true,
+      "accuracy_km": 50,
+      "city": "Mumbai",
+      "region": "Maharashtra",
+      "country_iso2": "IN",
+      "asn": 6453,
+      "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+      "sources": {
+        "asn": "maxmind",
+        "location": "maxmind"
+      }
+    },
+    {
+      "ip": "49.36.0.1",
+      "lat": 12.9141,
+      "lon": 74.856,
+      "has_location": true,
+      "accuracy_km": 50,
+      "city": "Mangaluru",
+      "region": "Karnataka",
+      "country_iso2": "IN",
+      "asn": 55836,
+      "as_org": "Reliance Jio Infocomm Limited",
+      "sources": {
+        "asn": "maxmind",
+        "location": "maxmind"
+      }
+    },
+    {
+      "ip": "52.93.0.1",
+      "lat": 53.3498,
+      "lon": -6.2603100000000005,
+      "has_location": true,
+      "accuracy_km": 50,
+      "city": "Dublin",
+      "region": "Leinster",
+      "country_iso2": "IE",
+      "asn": 16509,
+      "as_org": "Amazon.com, Inc.",
+      "sources": {
+        "asn": "maxmind",
+        "location": "maxmind"
+      }
+    },
+    {
+      "ip": "80.231.153.1",
+      "lat": 48.8575,
+      "lon": 2.35138,
+      "has_location": true,
+      "accuracy_km": 50,
+      "city": "Paris",
+      "region": "\u00cele-de-France",
+      "country_iso2": "FR",
+      "asn": 6453,
+      "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+      "sources": {
+        "asn": "maxmind",
+        "location": "maxmind"
+      }
+    },
+    {
+      "ip": "80.231.200.1",
+      "lat": 43.3026,
+      "lon": 5.36907,
+      "has_location": true,
+      "accuracy_km": 50,
+      "city": "Marseille",
+      "region": "Provence-Alpes-C\u00f4te d'Azur",
+      "country_iso2": "FR",
+      "asn": 6453,
+      "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+      "sources": {
+        "asn": "maxmind",
+        "location": "maxmind"
+      }
+    }
+  ]
+}
