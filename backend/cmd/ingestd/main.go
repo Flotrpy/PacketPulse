@@ -9,6 +9,12 @@
 //
 //	sudo ingestd -serve :8080
 //
+// Data classification: traces are tagged from -rules (or explicit labels
+// with -classify); tagged journeys can be sent to a complianced with
+// -compliance-url, which raises alerts into its operational stream:
+//
+//	sudo ingestd -app upi-payments -port 443 -compliance-url http://localhost:8090 razorpay.com
+//
 // Raw ICMP sockets need root or CAP_NET_RAW:
 //
 //	sudo setcap cap_net_raw+ep ./ingestd
@@ -31,6 +37,9 @@ import (
 	"time"
 
 	"github.com/flotrpy/packetpulse/backend/internal/api"
+	"github.com/flotrpy/packetpulse/backend/internal/bridge"
+	"github.com/flotrpy/packetpulse/backend/internal/classify"
+	capi "github.com/flotrpy/packetpulse/backend/internal/compliance/api"
 	"github.com/flotrpy/packetpulse/backend/internal/ingest"
 	"github.com/flotrpy/packetpulse/backend/internal/model"
 	"github.com/flotrpy/packetpulse/backend/internal/pipeline"
@@ -45,6 +54,9 @@ type flags struct {
 	noRDNS, pretty                                                            bool
 	srcLat, srcLon, srcAcc                                                    float64
 	srcCountry, srcCity                                                       string
+	rules, classes, app, sni, complianceURL                                   string
+	port                                                                      int
+	publicOnly                                                                bool
 }
 
 func parseFlags() *flags {
@@ -76,6 +88,13 @@ func parseFlags() *flags {
 	flag.StringVar(&f.out, "out", "-", "batch output file (JSON Lines); - = stdout")
 	flag.BoolVar(&f.pretty, "pretty", false, "pretty-print batch output")
 	flag.StringVar(&f.logLevel, "log-level", "info", "debug, info, warn, error")
+	flag.StringVar(&f.rules, "rules", "classification-rules.json", "data classification rules file (created from built-in examples if missing; empty = memory only)")
+	flag.StringVar(&f.classes, "classify", "", "batch mode: comma-separated data classifications for every target (overrides rules)")
+	flag.StringVar(&f.app, "app", "", "batch mode: application label of the traffic, for classification rules")
+	flag.StringVar(&f.sni, "sni", "", "batch mode: TLS server name of the traffic, for classification rules")
+	flag.IntVar(&f.port, "port", 0, "batch mode: destination service port of the traffic, for classification rules")
+	flag.StringVar(&f.complianceURL, "compliance-url", "", "complianced base URL; classified journeys are evaluated there and raise alerts (token: COMPLIANCE_TOKEN)")
+	flag.BoolVar(&f.publicOnly, "public-targets-only", false, "refuse targets that resolve to private/loopback/CGNAT/link-local addresses")
 	listPolicies := flag.Bool("list-policies", false, "print available policies and exit")
 	flag.Parse()
 	if *listPolicies {
@@ -126,7 +145,11 @@ func run(f *flags) error {
 	if !f.noRDNS {
 		dns = pipeline.SystemResolver()
 	}
-	pipe := pipeline.Default(ref, repo, dns)
+	cls, err := classify.New(f.rules, classify.DefaultRules())
+	if err != nil {
+		return err
+	}
+	pipe := pipeline.Default(ref, repo, dns, cls)
 	engine := traceroute.NewEngine(f.pps)
 	defer engine.Close()
 
@@ -137,16 +160,36 @@ func run(f *flags) error {
 	}
 	coord := ingest.New(ingest.Config{
 		Workers: f.workers, QueueSize: f.queue, TraceTimeout: f.traceTimeout, AgentID: f.agentID, SourceLoc: srcLoc,
+		PublicTargetsOnly: f.publicOnly,
 	}, engine, pipe, ref, nil, log)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	coord.Start(ctx)
 
-	if f.serve != "" {
-		return serve(ctx, f, coord, repo, ref, log)
+	var b *bridge.Bridge
+	if f.complianceURL != "" {
+		b = &bridge.Bridge{Eval: bridge.HTTP{BaseURL: f.complianceURL, Token: os.Getenv("COMPLIANCE_TOKEN")}, Log: log}
 	}
-	return batch(ctx, f, coord, repo, log)
+
+	if f.serve != "" {
+		if b != nil {
+			ch, _ := coord.Subscribe()
+			go b.Run(ctx, ch)
+		}
+		return serve(ctx, f, coord, repo, ref, cls, log)
+	}
+	return batch(ctx, f, coord, repo, b, log)
+}
+
+func splitList(s string) []string {
+	var out []string
+	for _, v := range strings.Split(s, ",") {
+		if v = strings.TrimSpace(v); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 func resolveDataDir(v string) string {
@@ -164,7 +207,7 @@ func resolveDataDir(v string) string {
 	return v
 }
 
-func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.JourneyRepository, log *slog.Logger) error {
+func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.JourneyRepository, b *bridge.Bridge, log *slog.Logger) error {
 	var targets []string
 	for _, t := range append(strings.Split(f.targets, ","), flag.Args()...) {
 		if t = strings.TrimSpace(t); t != "" {
@@ -192,7 +235,8 @@ func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.
 	opts := traceroute.Options{Protocol: traceroute.Protocol(f.protocol), FirstTTL: f.firstTTL, MaxHops: f.maxHops, ProbesPerHop: f.probes, Timeout: f.timeout}
 	var jobs []ingest.Job
 	for _, t := range targets {
-		j, err := coord.Submit(ingest.Request{Target: t, IPVersion: f.ipVersion, PolicyID: f.policy, AccessType: f.access, Options: opts})
+		j, err := coord.Submit(ingest.Request{Target: t, IPVersion: f.ipVersion, PolicyID: f.policy, AccessType: f.access, Options: opts,
+			DataClassifications: splitList(f.classes), App: f.app, SNI: f.sni, Port: f.port})
 		if err != nil {
 			return fmt.Errorf("submit %s: %w", t, err)
 		}
@@ -217,6 +261,9 @@ func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.
 		if err := enc.Encode(journey); err != nil {
 			return err
 		}
+		if b != nil {
+			b.Handle(ctx, journey)
+		}
 	}
 
 	sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -228,10 +275,17 @@ func batch(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.
 	return nil
 }
 
-func serve(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.JourneyRepository, ref *store.MemoryReference, log *slog.Logger) error {
+func serve(ctx context.Context, f *flags, coord *ingest.Coordinator, repo store.JourneyRepository, ref *store.MemoryReference, cls *classify.Classifier, log *slog.Logger) error {
+	admins, err := capi.ParseTokens(os.Getenv("INGEST_ADMIN_TOKENS"))
+	if err != nil {
+		return fmt.Errorf("INGEST_ADMIN_TOKENS: %w", err)
+	}
+	if len(admins) == 0 {
+		log.Warn("INGEST_ADMIN_TOKENS not set: classification rules are read-only over the API")
+	}
 	srv := &http.Server{
 		Addr:              f.serve,
-		Handler:           (&api.Server{Coord: coord, Repo: repo, Ref: ref, Stats: ref.Stats}).Handler(),
+		Handler:           (&api.Server{Coord: coord, Repo: repo, Ref: ref, Stats: ref.Stats, Classifier: cls, AdminTokens: admins}).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	errCh := make(chan error, 1)

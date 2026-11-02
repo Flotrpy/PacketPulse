@@ -7,6 +7,9 @@
 //	GET  /v1/stream            Server-Sent Events: one "journey" event per finished trace
 //	GET  /v1/policies          compliance policies
 //	GET  /v1/schema            PacketJourney JSON Schema
+//	GET  /v1/classification/rules        data classification rules
+//	PUT  /v1/classification/rules        replace rules [admin; If-Match: <version> optional]
+//	POST /v1/classification/test         dry-run the rules against a flow
 //	GET  /healthz              liveness + counters
 package api
 
@@ -19,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/flotrpy/packetpulse/backend/internal/classify"
 	"github.com/flotrpy/packetpulse/backend/internal/ingest"
 	"github.com/flotrpy/packetpulse/backend/internal/store"
 	"github.com/flotrpy/packetpulse/backend/internal/traceroute"
@@ -30,6 +34,9 @@ type Server struct {
 	Repo  store.JourneyRepository
 	Ref   store.ReferenceStore
 	Stats func() map[string]int // optional reference-table sizes
+
+	Classifier  *classify.Classifier // nil disables the /v1/classification routes
+	AdminTokens map[string]string    // bearer token -> actor, for rule changes
 }
 
 func (s *Server) Handler() http.Handler {
@@ -45,6 +52,11 @@ func (s *Server) Handler() http.Handler {
 		w.Write(schema.PacketJourney)
 	})
 	mux.HandleFunc("GET /healthz", s.health)
+	if s.Classifier != nil {
+		mux.HandleFunc("GET /v1/classification/rules", s.getRules)
+		mux.HandleFunc("PUT /v1/classification/rules", s.putRules)
+		mux.HandleFunc("POST /v1/classification/test", s.testRules)
+	}
 	return mux
 }
 
@@ -59,11 +71,17 @@ type TraceRequest struct {
 	MaxHops      int    `json:"max_hops,omitempty"`
 	ProbesPerHop int    `json:"probes_per_hop,omitempty"`
 	TimeoutMS    int    `json:"timeout_ms,omitempty"`
+
+	DataClassifications []string `json:"data_classifications,omitempty"`
+	App                 string   `json:"app,omitempty"`
+	SNI                 string   `json:"sni,omitempty"`
+	Port                int      `json:"port,omitempty"`
 }
 
 func (t TraceRequest) ToIngest() ingest.Request {
 	return ingest.Request{
 		Target: t.Target, IPVersion: t.IPVersion, PolicyID: t.PolicyID, AccessType: t.AccessType,
+		DataClassifications: t.DataClassifications, App: t.App, SNI: t.SNI, Port: t.Port,
 		Options: traceroute.Options{
 			Protocol: traceroute.Protocol(t.Protocol), FirstTTL: t.FirstTTL, MaxHops: t.MaxHops,
 			ProbesPerHop: t.ProbesPerHop, Timeout: time.Duration(t.TimeoutMS) * time.Millisecond,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/flotrpy/packetpulse/backend/internal/classify"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -82,7 +83,7 @@ var mumbai = &model.Location{Lat: 19.0596, Lon: 72.8295, City: "Mumbai", Country
 func run(t *testing.T, raw *traceroute.RawTrace, req Request) (*model.Journey, *store.MemoryRepository) {
 	t.Helper()
 	repo := store.NewMemoryRepository(10)
-	j, err := Default(store.NewSeededReference(), repo, mumbaiDNS).Run(context.Background(), raw, req)
+	j, err := Default(store.NewSeededReference(), repo, mumbaiDNS, exampleRules(t)).Run(context.Background(), raw, req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +94,7 @@ func run(t *testing.T, raw *traceroute.RawTrace, req Request) (*model.Journey, *
 }
 
 func TestMumbaiToFrankfurt(t *testing.T) {
-	j, repo := run(t, mumbaiTrace(), Request{Target: "18.96.32.10", PolicyID: "in-rbi-payments", AgentID: "test", AccessType: "cellular", SourceLocation: mumbai})
+	j, repo := run(t, mumbaiTrace(), Request{Target: "18.96.32.10", PolicyID: "in-rbi-payments", AgentID: "test", AccessType: "cellular", SourceLocation: mumbai, App: "upi-payments", Port: 443})
 
 	// --- hop hierarchy ---
 	if len(j.Hops) != 8 || !j.Metadata.ReachedDestination {
@@ -192,7 +193,10 @@ func TestMumbaiToFrankfurt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(stored.Pipeline.Stages) != 5 || stored.Pipeline.Stages[4].Name != "persist" {
+	if dc := j.Metadata.DataClassification; dc == nil || dc.Source != "rules" || len(dc.Labels) != 1 || dc.Labels[0] != "payment_system_data" || dc.RuleIDs[0] != "india-payment-apps" {
+		t.Errorf("data classification = %+v", dc)
+	}
+	if len(stored.Pipeline.Stages) != 6 || stored.Pipeline.Stages[2].Name != "classify" || stored.Pipeline.Stages[5].Name != "persist" {
 		t.Errorf("stored stages = %+v", stored.Pipeline.Stages)
 	}
 	for _, s := range j.Pipeline.Stages {
@@ -227,7 +231,7 @@ func TestRTTFeasibilityRejectsImpossibleHint(t *testing.T) {
 		{2, "8.8.8.8", []float64{3.0, 3.1, 3.2}, echo},
 	})
 	dns := fakeDNS{"180.87.38.1": "if-ae-1.tcore1.ldn-london.as6453.net"} // London, 7,200 km from Mumbai
-	j, err := Default(store.NewSeededReference(), store.NewMemoryRepository(1), dns).Run(context.Background(), raw,
+	j, err := Default(store.NewSeededReference(), store.NewMemoryRepository(1), dns, nil).Run(context.Background(), raw,
 		Request{SourceLocation: mumbai, PolicyID: "in-rbi-payments"})
 	if err != nil {
 		t.Fatal(err)
@@ -251,7 +255,7 @@ func TestContinentRuleForcesSubsea(t *testing.T) {
 		{2, "62.115.0.1", []float64{75.0, 76.0, 77.0}, echo},
 	})
 	src := &model.Location{Lat: 36.85, Lon: -75.98, CountryISO2: "US", AccuracyKM: 5, Method: "configured", Confidence: 1}
-	j, err := Default(ref, store.NewMemoryRepository(1), nil).Run(context.Background(), raw, Request{SourceLocation: src})
+	j, err := Default(ref, store.NewMemoryRepository(1), nil, nil).Run(context.Background(), raw, Request{SourceLocation: src})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +286,7 @@ func TestRTTStats(t *testing.T) {
 func TestExampleUpToDate(t *testing.T) {
 	path := filepath.Join("..", "..", "schema", "examples", "mumbai-jio-to-aws-frankfurt.journey.json")
 	if os.Getenv("UPDATE_EXAMPLES") == "1" {
-		j, _ := run(t, mumbaiTrace(), Request{Target: "18.96.32.10", PolicyID: "in-rbi-payments", AgentID: "android-7f3a", AccessType: "cellular", SourceLocation: mumbai})
+		j, _ := run(t, mumbaiTrace(), Request{Target: "18.96.32.10", PolicyID: "in-rbi-payments", AgentID: "android-7f3a", AccessType: "cellular", SourceLocation: mumbai, App: "upi-payments", Port: 443})
 		b, err := json.MarshalIndent(j, "", "  ")
 		if err != nil {
 			t.Fatal(err)
@@ -305,4 +309,13 @@ func TestExampleUpToDate(t *testing.T) {
 	if err := schema.Validate(&j); err != nil {
 		t.Fatalf("committed example violates schema: %v", err)
 	}
+}
+
+func exampleRules(t *testing.T) *classify.Classifier {
+	t.Helper()
+	c, err := classify.New("", classify.DefaultRules())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
 }

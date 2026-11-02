@@ -25,6 +25,12 @@ type Request struct {
 	AgentID        string
 	AccessType     string // wired | wifi | cellular | unknown
 	SourceLocation *model.Location
+
+	// Data classification context: explicit labels win over rules; App,
+	// SNI and Port describe the flow the trace stands in for.
+	Classifications []string
+	App, SNI        string
+	Port            int
 }
 
 // State is passed through every stage.

@@ -10,10 +10,12 @@ import (
 	"log/slog"
 	"net"
 	"net/netip"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/flotrpy/packetpulse/backend/internal/classify"
 	"github.com/flotrpy/packetpulse/backend/internal/model"
 	"github.com/flotrpy/packetpulse/backend/internal/pipeline"
 	"github.com/flotrpy/packetpulse/backend/internal/store"
@@ -34,6 +36,13 @@ type Request struct {
 	PolicyID   string             `json:"policy_id,omitempty"`
 	AccessType string             `json:"access_type,omitempty"`
 	Options    traceroute.Options `json:"options"`
+
+	// Data classification. Explicit labels win; otherwise the classifier's
+	// rules match on the target and on the flow context below.
+	DataClassifications []string `json:"data_classifications,omitempty"`
+	App                 string   `json:"app,omitempty"`  // application the traffic belongs to
+	SNI                 string   `json:"sni,omitempty"`  // TLS server name of the flow
+	Port                int      `json:"port,omitempty"` // destination service port of the flow
 }
 
 type Status string
@@ -73,6 +82,10 @@ type Config struct {
 	JobHistory   int           // finished jobs kept for status queries
 	AgentID      string
 	SourceLoc    *model.Location
+	// PublicTargetsOnly refuses targets that resolve to private, loopback,
+	// CGNAT, link-local or other non-global addresses (for internet-facing
+	// deployments, so callers cannot map the host's internal network).
+	PublicTargetsOnly bool
 }
 
 type Coordinator struct {
@@ -172,6 +185,20 @@ func (c *Coordinator) Validate(req Request) error {
 	default:
 		return fmt.Errorf("%w: access_type must be wired, wifi, cellular or unknown", ErrBadRequest)
 	}
+	if len(req.DataClassifications) > 16 {
+		return fmt.Errorf("%w: at most 16 data_classifications", ErrBadRequest)
+	}
+	for _, l := range classify.Normalize(req.DataClassifications) {
+		if !classify.ValidLabel(l) {
+			return fmt.Errorf("%w: data classification %q must be lower_snake_case (2-64 chars)", ErrBadRequest, l)
+		}
+	}
+	if req.Port < 0 || req.Port > 65535 {
+		return fmt.Errorf("%w: port must be 0-65535", ErrBadRequest)
+	}
+	if len(req.App) > 128 || len(req.SNI) > 253 {
+		return fmt.Errorf("%w: app or sni too long", ErrBadRequest)
+	}
 	if req.PolicyID != "" {
 		if _, ok := c.ref.Policy(req.PolicyID); !ok {
 			return fmt.Errorf("%w: unknown policy %q", ErrBadRequest, req.PolicyID)
@@ -185,7 +212,9 @@ func (c *Coordinator) Validate(req Request) error {
 
 func coalesceKey(r Request) string {
 	o := r.Options.WithDefaults()
-	return fmt.Sprintf("%s|%d|%s|%s|%s|%d|%d|%d", r.Target, r.IPVersion, o.Protocol, r.PolicyID, r.AccessType, o.FirstTTL, o.MaxHops, o.ProbesPerHop)
+	// Requests that would be classified differently must not share a job.
+	return fmt.Sprintf("%s|%d|%s|%s|%s|%d|%d|%d|%s|%s|%s|%d", r.Target, r.IPVersion, o.Protocol, r.PolicyID, r.AccessType,
+		o.FirstTTL, o.MaxHops, o.ProbesPerHop, strings.Join(classify.Normalize(r.DataClassifications), ","), r.App, r.SNI, r.Port)
 }
 
 // Submit queues a request. An identical request that is already queued or
@@ -347,6 +376,9 @@ func (c *Coordinator) execute(ctx context.Context, req Request) (*model.Journey,
 	if err != nil {
 		return nil, "", err
 	}
+	if c.cfg.PublicTargetsOnly && !isPublic(addr) {
+		return nil, "", fmt.Errorf("target %s resolves to non-public address %s", req.Target, addr)
+	}
 	raw, err := c.tracer.Trace(tctx, addr, req.Options)
 	warn := ""
 	if err != nil {
@@ -358,6 +390,7 @@ func (c *Coordinator) execute(ctx context.Context, req Request) (*model.Journey,
 	journey, err := c.pipe.Run(ctx, raw, pipeline.Request{
 		Target: req.Target, PolicyID: req.PolicyID, AgentID: c.cfg.AgentID,
 		AccessType: req.AccessType, SourceLocation: c.cfg.SourceLoc,
+		Classifications: req.DataClassifications, App: req.App, SNI: req.SNI, Port: req.Port,
 	})
 	if err != nil {
 		return nil, warn, fmt.Errorf("pipeline: %w", err)
@@ -416,4 +449,25 @@ var idCounter atomic.Uint64
 
 func newID() string {
 	return fmt.Sprintf("job-%d-%06d", time.Now().UnixMilli(), idCounter.Add(1)%1_000_000)
+}
+
+// Non-global ranges that netip's IsGlobalUnicast/IsPrivate still accept.
+var nonPublic = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"), netip.MustParsePrefix("100.64.0.0/10"), netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"), netip.MustParsePrefix("198.18.0.0/15"), netip.MustParsePrefix("198.51.100.0/24"),
+	netip.MustParsePrefix("203.0.113.0/24"), netip.MustParsePrefix("240.0.0.0/4"), netip.MustParsePrefix("2001:db8::/32"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+}
+
+func isPublic(a netip.Addr) bool {
+	a = a.Unmap()
+	if !a.IsGlobalUnicast() || a.IsPrivate() {
+		return false
+	}
+	for _, p := range nonPublic {
+		if p.Contains(a) {
+			return false
+		}
+	}
+	return true
 }

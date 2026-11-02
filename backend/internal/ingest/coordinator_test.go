@@ -68,7 +68,7 @@ func newTestCoordinator(t *testing.T, tr traceroute.Tracer, cfg Config) (*Coordi
 	t.Helper()
 	ref := store.NewSeededReference()
 	repo := store.NewMemoryRepository(100)
-	c := New(cfg, tr, pipeline.Default(ref, repo, nil), ref, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	c := New(cfg, tr, pipeline.Default(ref, repo, nil, nil), ref, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	c.Start(ctx)
@@ -167,6 +167,22 @@ func TestFailuresAndPartialTraces(t *testing.T) {
 	}
 }
 
+func TestPublicTargetsOnly(t *testing.T) {
+	c, _ := newTestCoordinator(t, &scriptedTracer{}, Config{Workers: 2, PublicTargetsOnly: true})
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	for target, ok := range map[string]bool{"8.8.8.8": true, "10.1.2.3": false, "127.0.0.1": false, "100.64.1.1": false, "169.254.169.254": false, "::1": false, "fd00::1": false} {
+		j, err := c.Submit(Request{Target: target})
+		if err != nil {
+			t.Fatal(err)
+		}
+		done, _ := c.Wait(ctx, j.ID)
+		if (done.Status == StatusDone) != ok {
+			t.Errorf("%s: status %s (%s)", target, done.Status, done.Error)
+		}
+	}
+}
+
 func TestValidation(t *testing.T) {
 	c, _ := newTestCoordinator(t, &scriptedTracer{}, Config{})
 	bad := []Request{
@@ -175,6 +191,8 @@ func TestValidation(t *testing.T) {
 		{Target: "8.8.8.8", AccessType: "carrier-pigeon"},
 		{Target: "8.8.8.8", IPVersion: 5},
 		{Target: "8.8.8.8", Options: traceroute.Options{MaxHops: 99}},
+		{Target: "8.8.8.8", DataClassifications: []string{"x"}},
+		{Target: "8.8.8.8", Port: -1},
 	}
 	for _, r := range bad {
 		if _, err := c.Submit(r); !errors.Is(err, ErrBadRequest) {

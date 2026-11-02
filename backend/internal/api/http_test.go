@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/flotrpy/packetpulse/backend/internal/classify"
 	"github.com/flotrpy/packetpulse/backend/internal/ingest"
 	"github.com/flotrpy/packetpulse/backend/internal/model"
 	"github.com/flotrpy/packetpulse/backend/internal/pipeline"
@@ -30,14 +31,23 @@ func (oneHopTracer) Trace(_ context.Context, target netip.Addr, opts traceroute.
 }
 func (oneHopTracer) Close() error { return nil }
 
+const adminToken = "test-admin-token-0123456789"
+
 func newServer(t *testing.T) *httptest.Server {
 	ref := store.NewSeededReference()
 	repo := store.NewMemoryRepository(10)
-	coord := ingest.New(ingest.Config{Workers: 2}, oneHopTracer{}, pipeline.Default(ref, repo, nil), ref, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	cls, err := classify.New("", classify.RuleSet{Rules: []classify.Rule{
+		{ID: "aws-eu-crm", Enabled: true, Match: classify.Match{CloudProviders: []string{"aws"}, Apps: []string{"crm-eu"}}, Classifications: []string{"eu_personal_data"}},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	coord := ingest.New(ingest.Config{Workers: 2}, oneHopTracer{}, pipeline.Default(ref, repo, nil, cls), ref, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	coord.Start(ctx)
-	ts := httptest.NewServer((&Server{Coord: coord, Repo: repo, Ref: ref, Stats: ref.Stats}).Handler())
+	ts := httptest.NewServer((&Server{Coord: coord, Repo: repo, Ref: ref, Stats: ref.Stats,
+		Classifier: cls, AdminTokens: map[string]string{adminToken: "alice"}}).Handler())
 	t.Cleanup(ts.Close)
 	return ts
 }
@@ -138,5 +148,109 @@ func TestErrorsAndMetadataEndpoints(t *testing.T) {
 			t.Errorf("%s -> %d, want %d", path, r.StatusCode, code)
 		}
 		r.Body.Close()
+	}
+}
+
+// trace submits body and returns the finished journey.
+func trace(t *testing.T, ts *httptest.Server, body string) model.Journey {
+	t.Helper()
+	resp, err := http.Post(ts.URL+"/v1/traces", "application/json", strings.NewReader(body))
+	if err != nil || resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("submit %s: %v %v", body, err, resp.Status)
+	}
+	var job ingest.Job
+	decode(t, resp, &job)
+	for deadline := time.Now().Add(3 * time.Second); job.Status != ingest.StatusDone && time.Now().Before(deadline); {
+		time.Sleep(10 * time.Millisecond)
+		r, _ := http.Get(ts.URL + "/v1/traces/" + job.ID)
+		decode(t, r, &job)
+	}
+	r, _ := http.Get(ts.URL + "/v1/journeys/" + job.JourneyID)
+	var j model.Journey
+	decode(t, r, &j)
+	return j
+}
+
+func TestClassificationAtIngestion(t *testing.T) {
+	ts := newServer(t)
+
+	// Rule match: AWS destination + the agent's app label.
+	j := trace(t, ts, `{"target":"18.96.32.10","app":"crm-eu","port":443,"max_hops":3}`)
+	dc := j.Metadata.DataClassification
+	if dc == nil || dc.Source != "rules" || len(dc.Labels) != 1 || dc.Labels[0] != "eu_personal_data" || dc.RuleIDs[0] != "aws-eu-crm" || dc.App != "crm-eu" {
+		t.Fatalf("rules: %+v", dc)
+	}
+	// Explicit labels win over rules (and the different labels must not
+	// coalesce with the job above).
+	j = trace(t, ts, `{"target":"18.96.32.10","app":"crm-eu","data_classifications":["payment_system_data"],"max_hops":3}`)
+	if dc := j.Metadata.DataClassification; dc.Source != "request" || dc.Labels[0] != "payment_system_data" {
+		t.Fatalf("explicit: %+v", dc)
+	}
+	// Untagged traffic is recorded as such.
+	j = trace(t, ts, `{"target":"18.96.32.10","max_hops":3}`)
+	if dc := j.Metadata.DataClassification; dc.Source != "none" || len(dc.Labels) != 0 {
+		t.Fatalf("none: %+v", dc)
+	}
+
+	for body, code := range map[string]int{
+		`{"target":"1.1.1.1","data_classifications":["Bad-Label!"]}`: 400,
+		`{"target":"1.1.1.1","port":70000}`:                          400,
+	} {
+		r, _ := http.Post(ts.URL+"/v1/traces", "application/json", strings.NewReader(body))
+		if r.StatusCode != code {
+			t.Errorf("%s -> %d", body, r.StatusCode)
+		}
+		r.Body.Close()
+	}
+}
+
+func TestClassificationRulesAPI(t *testing.T) {
+	ts := newServer(t)
+	put := func(token, ifMatch, body string) *http.Response {
+		req, _ := http.NewRequest(http.MethodPut, ts.URL+"/v1/classification/rules", strings.NewReader(body))
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		if ifMatch != "" {
+			req.Header.Set("If-Match", ifMatch)
+		}
+		r, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	rules := `{"rules":[{"id":"pg","enabled":true,"match":{"ports":[5432]},"classifications":["db_replication"]}]}`
+	for _, c := range []struct {
+		token, ifMatch, body string
+		code                 int
+	}{
+		{"", "", rules, 401},
+		{"wrong-token-wrong-token", "", rules, 401},
+		{adminToken, "", `{"rules":[{"id":"x1","enabled":true,"match":{},"classifications":["a_b"]}]}`, 422},
+		{adminToken, `"7"`, rules, 412},
+		{adminToken, `"1"`, rules, 200},
+	} {
+		r := put(c.token, c.ifMatch, c.body)
+		if r.StatusCode != c.code {
+			t.Errorf("PUT token=%q if-match=%s -> %d, want %d", c.token, c.ifMatch, r.StatusCode, c.code)
+		}
+		r.Body.Close()
+	}
+	r, _ := http.Get(ts.URL + "/v1/classification/rules")
+	var set classify.RuleSet
+	decode(t, r, &set)
+	if set.Version != 2 || set.UpdatedBy != "alice" || set.Rules[0].ID != "pg" {
+		t.Fatalf("%+v", set)
+	}
+	// The new rule applies to the next trace without a restart.
+	r, _ = http.Post(ts.URL+"/v1/classification/test", "application/json", strings.NewReader(`{"target":"db.example.com","port":5432}`))
+	var res classify.Result
+	decode(t, r, &res)
+	if res.Source != "rules" || res.Labels[0] != "db_replication" {
+		t.Fatalf("%+v", res)
+	}
+	if j := trace(t, ts, `{"target":"18.96.32.10","port":5432,"max_hops":3}`); j.Metadata.DataClassification.Labels[0] != "db_replication" {
+		t.Fatalf("%+v", j.Metadata.DataClassification)
 	}
 }

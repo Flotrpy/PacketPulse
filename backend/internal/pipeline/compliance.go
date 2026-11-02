@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"github.com/flotrpy/packetpulse/backend/internal/classify"
 	"sort"
 
 	"github.com/flotrpy/packetpulse/backend/internal/model"
@@ -185,10 +186,12 @@ func (p Persist) Process(ctx context.Context, s *State) error {
 }
 
 // Default builds the standard pipeline.
-func Default(ref store.ReferenceStore, repo store.JourneyRepository, dns ReverseResolver) *Pipeline {
+// cls may be nil (only explicit request labels are recorded).
+func Default(ref store.ReferenceStore, repo store.JourneyRepository, dns ReverseResolver, cls *classify.Classifier) *Pipeline {
 	return New(
 		Normalize{},
 		Resolve{Ref: ref, DNS: dns, MinRTTSlack: 100},
+		Classify{Rules: cls},
 		InferInfrastructure{Ref: ref},
 		Compliance{Ref: ref},
 		Persist{Repo: repo},
