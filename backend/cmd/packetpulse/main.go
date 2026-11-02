@@ -14,6 +14,9 @@
 //
 //	PACKETPULSE_ADMIN_TOKENS  admin for compliance profiles and classification rules; may submit traces
 //	PACKETPULSE_TRACE_TOKENS  may submit traces (POST /v1/traces always needs a token here)
+//	PACKETPULSE_AGENT_TOKENS  remote agents that push journeys (POST /v1/journeys), e.g.
+//	                          `sudo ingestd -forward-url https://<host> ...` with FORWARD_TOKEN
+//	                          on a machine that can trace when this host cannot
 //	PACKETPULSE_READ_TOKENS   if set, compliance reads need a token too
 //
 // Tracing needs raw ICMP sockets (root or CAP_NET_RAW). Without them the
@@ -105,6 +108,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	agents, err := tokens("PACKETPULSE_AGENT_TOKENS")
+	if err != nil {
+		return err
+	}
 	readers, err := tokens("PACKETPULSE_READ_TOKENS")
 	if err != nil {
 		return err
@@ -161,7 +168,7 @@ func run() error {
 		SourceLoc: srcLoc, PublicTargetsOnly: *publicOnly}, tracer, pipe, ref, nil, log)
 	tracing := canTrace()
 	if !tracing {
-		log.Warn("raw ICMP sockets unavailable (needs root or CAP_NET_RAW): trace requests will fail; the globe and compliance API still work")
+		log.Warn("raw ICMP sockets unavailable (needs root or CAP_NET_RAW): trace requests will fail; remote agents can push journeys to POST /v1/journeys")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -181,7 +188,7 @@ func run() error {
 	}
 
 	// ---- HTTP ----
-	ingestAPI := (&api.Server{Coord: coord, Repo: repo, Ref: ref, Stats: ref.Stats, Classifier: cls, AdminTokens: admins}).Handler()
+	ingestAPI := (&api.Server{Coord: coord, Repo: repo, Ref: ref, Stats: ref.Stats, Classifier: cls, AdminTokens: admins, AgentTokens: agents}).Handler()
 	complianceAPI := (&capi.Server{Engine: engine, Alerts: alerts, AdminTokens: admins, ReadTokens: readers, Laws: laws}).Handler()
 	mux := http.NewServeMux()
 	mux.Handle("/v1/compliance/", complianceAPI)

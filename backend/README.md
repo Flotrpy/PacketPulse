@@ -68,7 +68,11 @@ docker run --rm -p 8080:8080 -e PACKETPULSE_ADMIN_TOKENS="me:$(openssl rand -hex
 
 - `POST /v1/traces` always needs a bearer token (`PACKETPULSE_TRACE_TOKENS` or `PACKETPULSE_ADMIN_TOKENS`), and targets resolving to private, loopback, CGNAT or link-local addresses are refused (`-public-targets-only`, on by default). An internet-facing host must not run traceroutes for anonymous callers or map its own network.
 - Admin tokens also manage compliance profiles and classification rules. `PACKETPULSE_READ_TOKENS`, if set, protects compliance reads.
-- `/healthz` reports `"tracing": false` when the host can't open raw ICMP sockets. The globe and compliance API still work then.
+- `/healthz` reports `"tracing": false` when the host can't open raw ICMP sockets (most PaaS containers, including Render). The globe and compliance API still work, and **remote agents** supply the traffic: any machine with root runs `ingestd` and pushes each journey to `POST /v1/journeys` (token from `PACKETPULSE_AGENT_TOKENS`). The server classifies journeys the agent left untagged with its own rules, stores them, streams them to the globe and evaluates them:
+
+```bash
+sudo FORWARD_TOKEN=<agent token> ./ingestd -data-dir ../data -forward-url https://<your-host> -app upi-payments -port 443 razorpay.com
+```
 - The image seeds the recorded example journey (Jio Mumbai → AWS Frankfurt, tagged `payment_system_data`), so the globe and alert stream are not empty before the first live trace. Remove `-seed` from the entrypoint for a clean start.
 - State (profiles, rules, journeys, alerts) is in memory and `/tmp`, so it resets when the container restarts.
 
@@ -164,10 +168,11 @@ curl -XPOST localhost:8080/v1/traces -d '{"target":"1.1.1.1","protocol":"udp","p
 | `POST /v1/traces` | `{target, protocol, ip_version, policy_id, access_type, first_ttl, max_hops, probes_per_hop, timeout_ms, data_classifications, app, sni, port}` → 202 + job |
 | `GET /v1/traces/{id}` | job status (`queued`/`running`/`done`/`failed`, warning for partial traces) |
 | `GET /v1/journeys/{id}` · `GET /v1/journeys?destination=&verdict=&since=&limit=` | stored journeys |
+| `POST /v1/journeys` | accept a journey from a remote agent (agent or admin token; schema-validated) |
 | `GET /v1/stream` | SSE, one `journey` event per finished trace |
 | `GET /v1/policies` · `GET /v1/schema` · `GET /healthz` | metadata |
 
-Useful flags: `-workers` (concurrent traces, default 8), `-pps` (global probe rate, default 200), `-protocol icmp|udp`, `-access cellular`, `-no-rdns`, `-list-policies`, `-rules`, `-classify a,b` / `-app` / `-sni` / `-port` (batch-mode classification), `-compliance-url`, `-public-targets-only`.
+Useful flags: `-workers` (concurrent traces, default 8), `-pps` (global probe rate, default 200), `-protocol icmp|udp`, `-access cellular`, `-no-rdns`, `-list-policies`, `-rules`, `-classify a,b` / `-app` / `-sni` / `-port` (batch-mode classification), `-compliance-url`, `-forward-url` (push journeys to a PacketPulse server, token in `FORWARD_TOKEN`), `-public-targets-only`.
 
 ## Test
 
