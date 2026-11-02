@@ -54,6 +54,7 @@ get "$R/ourairports/airports.csv" https://davidmegginson.github.io/ourairports-d
 NE=https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson
 get "$R/naturalearth/ne_50m_admin_0_countries.geojson" "$NE/ne_50m_admin_0_countries.geojson"
 get "$R/naturalearth/ne_10m_admin_0_disputed_areas.geojson" "$NE/ne_10m_admin_0_disputed_areas.geojson"
+get "$R/naturalearth/ne_50m_admin_1_states_provinces.geojson" "$NE/ne_50m_admin_1_states_provinces.geojson"
 gzip -f9 "$R"/naturalearth/*.geojson
 get "$R/afterfibre/africa-fiber.tilejson" https://d316kar6yg8hyq.cloudfront.net/africa-fiber.json
 get "$R/afterfibre/AfTerFibre_cities.geojson" https://afterfibre.opentelecomdata.org/data/other/AfTerFibre_cities.geojson
