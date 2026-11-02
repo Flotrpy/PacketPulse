@@ -20,10 +20,12 @@
 //	PACKETPULSE_READ_TOKENS   if set, compliance reads need a token too
 //
 // Tracing needs raw ICMP sockets (root or CAP_NET_RAW). Without them the
-// service still runs; /healthz reports "tracing": false.
+// service still runs; /healthz reports "tracing": false. Traces from the
+// user's own computer come from ppagent through /v1/agent/* (agenthub).
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -31,8 +33,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -42,11 +46,13 @@ import (
 
 	"golang.org/x/net/icmp"
 
+	"github.com/flotrpy/packetpulse/backend/internal/agenthub"
 	"github.com/flotrpy/packetpulse/backend/internal/api"
 	"github.com/flotrpy/packetpulse/backend/internal/bridge"
 	"github.com/flotrpy/packetpulse/backend/internal/classify"
 	"github.com/flotrpy/packetpulse/backend/internal/compliance"
 	capi "github.com/flotrpy/packetpulse/backend/internal/compliance/api"
+	"github.com/flotrpy/packetpulse/backend/internal/enrich/geoip"
 	"github.com/flotrpy/packetpulse/backend/internal/ingest"
 	"github.com/flotrpy/packetpulse/backend/internal/model"
 	"github.com/flotrpy/packetpulse/backend/internal/pipeline"
@@ -76,6 +82,8 @@ func run() error {
 	agentID := flag.String("agent-id", host, "agent identifier stamped on journeys")
 	noRDNS := flag.Bool("no-rdns", false, "disable reverse DNS")
 	publicOnly := flag.Bool("public-targets-only", true, "refuse targets that resolve to non-public addresses")
+	geoCity := flag.String("geoip-city", "auto", "city-level IP geolocation database (MaxMind/DB-IP .mmdb, may be .gz); auto = <data-dir>/raw/dbip/dbip-city-lite-*.mmdb[.gz]; none = curated prefixes only")
+	agentDir := flag.String("agent-dir", "", "directory of prebuilt ppagent binaries served at /v1/agent/download/{name}")
 	seed := flag.String("seed", "", "glob of PacketJourney files to load at startup (e.g. schema/examples/*.journey.json); they are classified, stored and evaluated like live traces")
 	srcCountry := flag.String("source-country", "", "ISO2 country of this host (enables RTT feasibility checks)")
 	srcLat := flag.Float64("source-lat", 0, "latitude of this host")
@@ -148,6 +156,23 @@ func run() error {
 	} else {
 		log.Info("reference data loaded", "loaded", rep.Loaded, "warnings", len(rep.Warnings))
 	}
+	if path := findGeoDB(*geoCity, dir); path != "" {
+		mm, err := openGeoDB(path, *stateDir)
+		if err != nil {
+			log.Warn("IP geolocation database not loaded; most router hops will stay unlocated", "path", path, "err", err)
+		} else {
+			defer mm.Close()
+			ref.SetGeoFallback(func(a netip.Addr) (store.GeoHit, bool) {
+				rec, err := mm.Lookup(context.Background(), a)
+				if err != nil || !rec.HasLocation || rec.CountryISO2 == "" {
+					return store.GeoHit{}, false
+				}
+				return store.GeoHit{Prefix: netip.PrefixFrom(a, a.BitLen()), City: rec.City, CountryISO2: rec.CountryISO2,
+					Lat: rec.Lat, Lon: rec.Lon, AccuracyKM: rec.AccuracyKM}, true
+			})
+			log.Info("IP geolocation database loaded", "path", path)
+		}
+	}
 	repo := store.NewMemoryRepository(5000)
 	cls, err := classify.New(statePath("classification-rules.json"), classify.DefaultRules())
 	if err != nil {
@@ -191,6 +216,23 @@ func run() error {
 	ingestAPI := (&api.Server{Coord: coord, Repo: repo, Ref: ref, Stats: ref.Stats, Classifier: cls, AdminTokens: admins, AgentTokens: agents}).Handler()
 	complianceAPI := (&capi.Server{Engine: engine, Alerts: alerts, AdminTokens: admins, ReadTokens: readers, Laws: laws}).Handler()
 	mux := http.NewServeMux()
+	hub := agenthub.New()
+	// Agent tokens may queue jobs too, so `ppagent <target>` works on its own.
+	(&agenthub.Server{Hub: hub, Ingest: coord, TraceTokens: []map[string]string{admins, tracers, agents}, AgentTokens: agents}).Register(mux)
+	if *agentDir != "" {
+		dl := http.StripPrefix("/v1/agent/download/", http.FileServer(http.Dir(*agentDir)))
+		mux.Handle("GET /v1/agent/download/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			name := strings.TrimPrefix(r.URL.Path, "/v1/agent/download/")
+			if name == "" || strings.Contains(name, "/") {
+				http.NotFound(w, r)
+				return
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+			w.Header().Set("Cache-Control", "public, max-age=300")
+			dl.ServeHTTP(w, r)
+		}))
+	}
 	mux.Handle("/v1/compliance/", complianceAPI)
 	mux.Handle("/v1/", requireTraceToken(ingestAPI, admins, tracers))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -199,7 +241,7 @@ func run() error {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"status": "ok", "tracing": tracing, "ingest": coord.Stats(), "journeys_stored": n,
-			"classification_rules": cls.Rules().Version, "compliance_bridge": br.Stats(),
+			"classification_rules": cls.Rules().Version, "compliance_bridge": br.Stats(), "agents": hub.Agents(),
 			"compliance": map[string]any{"registry_snapshot": snap.Seq, "profiles": len(snap.Profiles), "regions": len(snap.Regions)},
 		})
 	})
@@ -323,6 +365,61 @@ func findDataDir(v string) (string, error) {
 		}
 	}
 	return "", errors.New("data directory not found; pass -data-dir")
+}
+
+func findGeoDB(v, dataDir string) string {
+	switch v {
+	case "none", "":
+		return ""
+	case "auto":
+		for _, pat := range []string{"/app/geoip/*.mmdb", filepath.Join(dataDir, "raw", "dbip", "dbip-city-lite-*.mmdb"), filepath.Join(dataDir, "raw", "dbip", "dbip-city-lite-*.mmdb.gz")} {
+			if m, _ := filepath.Glob(pat); len(m) > 0 {
+				return m[len(m)-1]
+			}
+		}
+		return ""
+	}
+	return v
+}
+
+// openGeoDB opens an .mmdb, decompressing a .gz copy to disk first so the
+// reader can memory-map it instead of holding it on the heap.
+func openGeoDB(path, stateDir string) (*geoip.MaxMind, error) {
+	if strings.HasSuffix(path, ".gz") {
+		dir := stateDir
+		if dir == "" {
+			dir = os.TempDir()
+		}
+		out := filepath.Join(dir, strings.TrimSuffix(filepath.Base(path), ".gz"))
+		if _, err := os.Stat(out); err != nil {
+			in, err := os.Open(path)
+			if err != nil {
+				return nil, err
+			}
+			defer in.Close()
+			zr, err := gzip.NewReader(in)
+			if err != nil {
+				return nil, err
+			}
+			tmp := out + ".tmp"
+			f, err := os.Create(tmp)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := io.Copy(f, zr); err != nil {
+				f.Close()
+				return nil, err
+			}
+			if err := f.Close(); err != nil {
+				return nil, err
+			}
+			if err := os.Rename(tmp, out); err != nil {
+				return nil, err
+			}
+		}
+		path = out
+	}
+	return geoip.OpenMaxMind(geoip.MaxMindPaths{City: path})
 }
 
 func findWebDir(v string) string {
