@@ -23,6 +23,32 @@ npm test
 npm run build
 ```
 
+## Business Mode (data sovereignty)
+
+![Business Mode on the enriched Mumbai -> Frankfurt trace](docs/business-mode-example.png)
+![Adequacy-aware GDPR profile over 150 simulated paths](docs/business-mode-adequacy.png)
+
+The **Business Mode** button checks every path on the globe with the compliance engine (`backend/cmd/complianced`) and recolours the scene:
+
+- **Jurisdiction overlay:** permitted regions of the profiles that govern the chosen data class are tinted teal with border lines; deny-list regions are red; other land is dimmed. Borders come from the engine (`/regions/{id}/geometry`), so regions admins add or change at runtime are drawn as defined.
+- **Routes:** arcs and hops switch from latency colours to compliance status: teal compliant, amber suspected (uncertain location or pending review, e.g. US recipients that need a DPF check), flashing red violation, grey when no profile governs the traffic. Every point inside a non-permitted territory is coloured, not only the entry point, and a subsea segment turns red when its cable lands in a non-permitted country between two compliant hops.
+- **Alerts:** a pulsing marker at each territory entry (dashed when suspected), and a panel listing alerts with the law (e.g. GDPR Chapter V), entry time and recommended reroute. Click an alert to fly there. Selecting a hop filters the panel to its path, and the hop inspector shows its jurisdiction and verdict.
+- **Law Directory tab:** the curated laws (`data/curated/regulations/jurisdictions.json`) for the territories the traffic touches.
+
+The globe uses the engine's preview mode (`/v1/compliance/evaluate/batch` with `publish: false`): it never raises alerts into the operational stream. Only new or rerouted paths are re-evaluated; latency-only updates can't change compliance. **Refresh** picks up profile changes admins make through the API.
+
+Run it locally:
+
+```bash
+cd backend && go run ./cmd/complianced -listen :8090 -data-dir ../data
+```
+
+```bash
+cd frontend && npm run dev
+```
+
+Then open `http://localhost:5173/?example=1&business=1` (or `?demo=300&business=1&class=eu_personal_data`). Vite proxies `/v1/compliance` to :8090. In production, serve the globe from the same origin or start complianced with `-cors-origins https://your-globe`.
+
 ## Component API
 
 ```ts

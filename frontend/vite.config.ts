@@ -1,10 +1,16 @@
 import { defineConfig } from "vite";
 
-// The Go backend (backend/cmd/ingestd -serve :8080) is proxied in dev so the
-// globe can use /v1/stream and /v1/journeys without CORS.
+// Dev/preview proxies so the globe can talk to the Go services without CORS:
+//   /v1/compliance -> complianced (backend/cmd/complianced -listen :8090)
+//   /v1            -> ingestd     (backend/cmd/ingestd -serve :8080)
+// The more specific prefix must come first.
+const proxy = {
+  "/v1/compliance": "http://localhost:8090",
+  "/v1": "http://localhost:8080",
+};
+
 export default defineConfig({
-  server: {
-    proxy: { "/v1": "http://localhost:8080" },
-  },
+  server: { proxy },
+  preview: { proxy },
   build: { target: "es2022", sourcemap: true },
 });

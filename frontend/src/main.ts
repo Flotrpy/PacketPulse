@@ -3,11 +3,15 @@
  *   ?demo=500      simulated load (default 300)
  *   ?example=1     the backend's example journey (Mumbai -> Frankfurt)
  *   ?live=1        follow the Go backend's /v1/stream (vite proxies /v1 to :8080)
+ *   ?business=1    start in Business Mode (needs complianced; vite proxies /v1/compliance to :8090)
+ *   &class=...     data classification to evaluate in Business Mode
  */
 import { PacketGlobe } from "./PacketGlobe";
 import { statusOf } from "./core/health";
 import type { HopSelection } from "./core/types";
-import { journeyToPath, type PacketJourney } from "./data/journeyAdapter";
+import { inframapToPath, type InfraMap } from "./data/inframapAdapter";
+import { BusinessMode } from "./business/BusinessMode";
+import { complianceCss, statusCode } from "./core/compliance";
 import { Simulator } from "./data/simulator";
 import { connectBackend } from "./data/streamClient";
 
@@ -18,6 +22,8 @@ const inspector = $("#inspector");
 
 const globe = new PacketGlobe({ container, landUrl: `${import.meta.env.BASE_URL}data/land.json` });
 (window as unknown as { packetGlobe: PacketGlobe }).packetGlobe = globe; // handy for console debugging
+const business = new BusinessMode(globe, $("#business"));
+(window as unknown as { business: BusinessMode }).business = business;
 
 let sim: Simulator | null = null;
 let simTimer = 0;
@@ -30,7 +36,7 @@ function stopSources(): void {
   stopLive?.();
   stopLive = null;
   globe.clear();
-  document.querySelectorAll("#hud button").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll("#hud button:not([data-mode])").forEach((b) => b.classList.remove("active"));
 }
 
 function startDemo(n: number): void {
@@ -53,11 +59,13 @@ function startDemo(n: number): void {
 async function loadExample(): Promise<void> {
   stopSources();
   $("#b-example").classList.add("active");
-  const res = await fetch(`${import.meta.env.BASE_URL}data/example-journey.json`);
-  const path = journeyToPath((await res.json()) as PacketJourney);
+  // The enriched InfraMap of the Jio 5G (Mumbai) -> AWS Frankfurt trace: it
+  // carries the subsea cable's landing stations, which Business Mode checks.
+  const res = await fetch(`${import.meta.env.BASE_URL}data/example-inframap.json`);
+  const path = inframapToPath((await res.json()) as InfraMap);
   if (!path) return;
   globe.setPath(path);
-  statusEl.textContent = `example: ${path.label} (${path.verdict})`;
+  statusEl.textContent = `example: Jio Mumbai → ${path.label} (enriched trace)`;
   await globe.focusPath(path.id);
 }
 
@@ -98,6 +106,7 @@ function renderInspector(sel: HopSelection | null): void {
       <dt>loss</dt><dd>${(h.lossPct ?? 0).toFixed(1)} %</dd>
       <dt>health</dt><dd>${sel.hopIndex === 0 ? "source" : `<span class="pill ${st}">${st}</span> latency ×${sel.latencyExcess.toFixed(2)} of light-speed`}</dd>
       ${h.borderViolation ? `<dt>policy</dt><dd><span class="pill red">border violation</span></dd>` : ""}
+      ${complianceRows(sel)}
     </dl>
     <div class="hops">${(path?.hops ?? []).map((_, i) => `<button data-hop="${i}" class="${i === sel.hopIndex ? "active" : ""}">${i}</button>`).join("")}</div>`;
   inspector.classList.add("open");
@@ -106,9 +115,26 @@ function renderInspector(sel: HopSelection | null): void {
   );
 }
 
+/** Business Mode rows: jurisdiction of the hop and what the engine said about it. */
+function complianceRows(sel: HopSelection): string {
+  if (!business.isEnabled) return "";
+  const d = business.hopDetails(sel.pathId, sel.hopIndex);
+  if (!d?.point) return `<dt>compliance</dt><dd class="muted">not evaluated yet</dd>`;
+  const p = d.point;
+  const code = statusCode(p.status);
+  const where = [p.location.subdivision_name, p.location.country_name ?? p.location.country_iso2].filter(Boolean).join(", ") || "international waters";
+  let rows = `<dt>jurisdiction</dt><dd>${esc(where)}${p.regions.length ? ` <span class="muted">(${esc(p.regions.join(", "))})</span>` : ""}</dd>
+    <dt>compliance</dt><dd><span class="pill" style="color:${complianceCss(code)};background:rgba(255,255,255,0.06)">${esc(p.status.replace("_", " "))}</span>${p.flagged_by?.length ? ` <span class="muted">${esc(p.flagged_by.join(", "))}</span>` : ""}</dd>`;
+  for (const v of d.alerts) {
+    rows += `<dt>alert</dt><dd>${esc(v.alert.law.code)} · entered ${esc(new Date(v.alert.entered_at).toISOString().slice(11, 23))} UTC<br><span class="muted">${esc(v.alert.mitigation.recommendation)}</span></dd>`;
+  }
+  return rows;
+}
+
 // Re-rendering on every live update would steal clicks; throttle to 4/s.
 let pending: HopSelection | null | undefined;
 globe.onSelect((sel) => {
+  business.onSelect(sel);
   if (pending === undefined) setTimeout(() => { renderInspector(pending ?? null); pending = undefined; }, 250);
   pending = sel;
 });
@@ -125,6 +151,19 @@ setInterval(() => {
 
 document.querySelectorAll<HTMLButtonElement>("[data-demo]").forEach((b) => b.addEventListener("click", () => startDemo(Number(b.dataset.demo))));
 $("#b-example").addEventListener("click", () => void loadExample());
+const businessBtn = $("#b-business");
+const legend = $("#legend");
+const latencyLegend = legend.innerHTML;
+const businessLegend = ["violation", "suspected", "compliant", "not_evaluated"]
+  .map((s) => `<span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;background:${complianceCss(statusCode(s))}"></i>${s.replace("_", " ")}</span>`)
+  .join("");
+async function toggleBusiness(on: boolean): Promise<void> {
+  businessBtn.classList.toggle("active", on);
+  legend.innerHTML = on ? businessLegend : latencyLegend;
+  if (on) await business.enable();
+  else business.disable();
+}
+businessBtn.addEventListener("click", () => void toggleBusiness(!business.isEnabled));
 $("#b-live").addEventListener("click", startLive);
 $("#b-clear").addEventListener("click", () => {
   stopSources();
@@ -135,6 +174,10 @@ window.addEventListener("keydown", (e) => {
 });
 
 const q = new URLSearchParams(location.search);
+if (q.has("business")) {
+  if (q.get("class")) void business.setClassification(q.get("class")!);
+  void toggleBusiness(true);
+}
 if (q.has("live")) startLive();
 else if (q.has("example")) void loadExample();
 else startDemo(Number(q.get("demo")) || 300);
