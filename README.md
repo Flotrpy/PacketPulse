@@ -45,11 +45,12 @@ drawn on a 3D globe and checked against data-sovereignty laws (GDPR, RBI, CCPA�
 <details>
 <summary><b>Table of contents</b></summary>
 
-1. [About the project](#-about-the-project)
+1. [Quick start (Windows)](#-quick-start-trace-from-your-windows-pc-2-minutes)
+2. [About the project](#-about-the-project)
    - [Features](#features)
    - [Built with](#built-with)
    - [How it works](#how-it-works)
-2. [Getting started](#-getting-started)
+3. [Getting started](#-getting-started)
    - [Try the live demo](#try-the-live-demo-1-minute)
    - [Trace from your own computer](#-trace-from-your-own-computer)
      - [Windows](#windows-step-by-step)
@@ -57,18 +58,78 @@ drawn on a 3D globe and checked against data-sovereignty laws (GDPR, RBI, CCPA�
      - [Linux](#linux)
      - [Troubleshooting](#troubleshooting)
    - [Run the whole stack locally](#run-the-whole-stack-locally)
-3. [Usage](#-usage)
-4. [Configuration](#-configuration)
-5. [Deployment](#-deployment)
-6. [Project structure](#-project-structure)
-7. [Accuracy and limits](#-accuracy-and-limits)
-8. [Roadmap](#-roadmap)
-9. [Contributing](#-contributing)
-10. [License](#-license)
-11. [Contact](#-contact)
-12. [Acknowledgments](#-acknowledgments)
+4. [Usage](#-usage)
+5. [Configuration](#-configuration)
+6. [Deployment](#-deployment)
+7. [Project structure](#-project-structure)
+8. [Accuracy and limits](#-accuracy-and-limits)
+9. [Roadmap](#-roadmap)
+10. [Contributing](#-contributing)
+11. [License](#-license)
+12. [Contact](#-contact)
+13. [Acknowledgments](#-acknowledgments)
 
 </details>
+
+---
+
+## ⚡ Quick start: trace from your Windows PC (2 minutes)
+
+New here? This is all you need. You'll need the **agent token** from whoever runs the server; for the demo, ask the owner.
+
+**1. Open PowerShell as Administrator**
+
+Press the <kbd>⊞ Windows</kbd> key, type **PowerShell**, right-click **Windows PowerShell** and choose **Run as administrator**, then click **Yes**. The window title should start with **Administrator:**.
+
+**2. Paste this one line and press <kbd>Enter</kbd>**
+
+```powershell
+irm https://packetpulse-test.onrender.com/v1/agent/download/start-ppagent.ps1 | iex
+```
+
+It downloads the agent, lets traceroute replies through Windows Firewall, asks for your token **once** (paste it with a right-click, then <kbd>Enter</kbd>), and starts. When you see this, it's ready:
+
+```text
+msg="waiting for trace jobs from the globe"
+```
+
+Leave the window open.
+
+**3. Trace from the website**
+
+Open **https://packetpulse-eta.vercel.app**. In **Trace from my computer**:
+
+1. Paste the same token into **trace token** (your browser remembers it).
+2. Click **London** (or any **Across the Atlantic** button), or type any website and press **Trace**.
+3. The globe flies to the path from *your* computer. Click the hop where the latency jumps to see the **subsea cable** it crossed.
+
+**Next time** just do steps 1 and 2 again: the token is remembered, and you always get the latest agent. Close the window (or press <kbd>Ctrl</kbd>+<kbd>C</kbd>) to stop.
+
+<details>
+<summary><b>Inviting someone else?</b> Send them this</summary>
+
+> 1. Open PowerShell as Administrator (Windows key → type PowerShell → right-click → Run as administrator).
+> 2. Paste: `irm https://packetpulse-test.onrender.com/v1/agent/download/start-ppagent.ps1 | iex`
+> 3. When asked, paste this token: `<the agent token>`
+> 4. Open https://packetpulse-eta.vercel.app, paste the same token into "trace token", click **London**.
+
+Anyone with the token can run traces from their own computer and see everyone's paths on the globe, so only share it with people you trust. Rotate it in Render → **Environment** → `PACKETPULSE_AGENT_TOKENS` if needed.
+</details>
+
+<details>
+<summary>Prefer to look at the script first?</summary>
+
+The launcher is [`scripts/windows/start-ppagent.ps1`](scripts/windows/start-ppagent.ps1) (about 60 readable lines). To download and run it as a file instead:
+
+```powershell
+curl.exe -fLo start-ppagent.ps1 https://packetpulse-test.onrender.com/v1/agent/download/start-ppagent.ps1
+powershell -ExecutionPolicy Bypass -File .\start-ppagent.ps1
+```
+
+Or skip the script entirely and follow the [manual Windows steps](#windows-step-by-step).
+</details>
+
+macOS or Linux? See [macOS](#macos) / [Linux](#linux).
 
 ---
 
@@ -164,7 +225,15 @@ You need the **agent token** of the deployment. For the demo deployment, the own
 
 #### Windows (step by step)
 
-> Tested target: Windows 10/11, 64-bit. Traceroute needs raw network sockets, so the agent must run **as Administrator**.
+> Windows 10/11, 64-bit. Traceroute needs raw network sockets, so the agent must run **as Administrator**.
+
+**Easiest:** the one-line launcher from the [Quick start](#-quick-start-trace-from-your-windows-pc-2-minutes) does all of the steps below for you:
+
+```powershell
+irm https://packetpulse-test.onrender.com/v1/agent/download/start-ppagent.ps1 | iex
+```
+
+**Manual**, if you'd rather type each step yourself:
 
 1. **Open PowerShell as Administrator.** Press <kbd>Start</kbd>, type `PowerShell`, right-click **Windows PowerShell** and choose **Run as administrator**. Click **Yes** in the prompt.
 
@@ -172,7 +241,7 @@ You need the **agent token** of the deployment. For the demo deployment, the own
 
    ```powershell
    cd $HOME\Downloads
-   curl.exe -fLo ppagent.exe https://packetpulse-eta.vercel.app/v1/agent/download/ppagent-windows-amd64.exe
+   curl.exe -fLo ppagent.exe https://packetpulse-test.onrender.com/v1/agent/download/ppagent-windows-amd64.exe
    ```
 
 3. **Allow traceroute replies through Windows Firewall** (one time only). Without this rule, routers' replies may be dropped and every hop shows as silent:
@@ -211,7 +280,9 @@ You need the **agent token** of the deployment. For the demo deployment, the own
   .\ppagent.exe -lat 17.385 -lon 78.4867 -country IN -city Hyderabad
   ```
 - **Trace without the website:** `.\ppagent.exe google.com 1.1.1.1` runs one-off traces and shows them on the globe.
-- **Keep the token across sessions:** `setx PACKETPULSE_AGENT_TOKEN "your-token"`, then open a *new* Administrator PowerShell.
+- **Keep the token across sessions:** `setx PACKETPULSE_AGENT_TOKEN "your-token"`, then open a *new* Administrator PowerShell. (The launcher does this for you.)
+- **Forget the saved token:** `[Environment]::SetEnvironmentVariable("PACKETPULSE_AGENT_TOKEN", $null, "User")`
+- **"running scripts is disabled on this system":** that's the execution policy for `.ps1` *files*. The `irm … | iex` line isn't affected; for the file version use `powershell -ExecutionPolicy Bypass -File .\start-ppagent.ps1`.
 - **On a VPN?** The path starts at the VPN exit, because that's where your packets enter the internet.
 - **ARM Windows (Surface Pro X, Snapdragon laptops):** the x64 build runs under emulation.
 
