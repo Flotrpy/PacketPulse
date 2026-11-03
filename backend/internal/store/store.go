@@ -87,6 +87,7 @@ type ReferenceStore interface {
 	MatchHostname(hostname string) (City, string, bool) // city, matched token
 	Country(iso2 string) (Country, bool)
 	CablesBetween(countryA, countryB string) []Cable
+	CablesFrom(country string) []Cable
 	MobileCarrier(asn int) (Carrier, bool)
 	CloudProvider(asn int) (string, bool)
 	Policy(id string) (Policy, bool)

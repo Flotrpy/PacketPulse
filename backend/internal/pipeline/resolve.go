@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"math"
 	"net"
 	"net/netip"
 	"strings"
@@ -72,6 +73,8 @@ func (r Resolve) Process(ctx context.Context, s *State) error {
 			dl.Confidence = min(dl.Confidence, 0.4)
 		}
 	}
+	env := rttFloor(s)
+	var prev *model.Location // last located public hop (the path so far)
 	seenMobile := false
 	for i := range j.Hops {
 		h := &j.Hops[i]
@@ -101,7 +104,10 @@ func (r Resolve) Process(ctx context.Context, s *State) error {
 		if hasASN {
 			h.ASN, h.ASOrg, h.RegistryCountry = info.ASN, info.Name, info.RegistryCountry
 		}
-		h.Location = r.locate(addr, h, src, s.hopMinMS[i])
+		h.Location = r.locate(addr, h, src, prev, env[i])
+		if h.Location != nil && h.Location.Confidence >= 0.5 {
+			prev = h.Location
+		}
 		if h.Location == nil && h.Role == "destination" && j.Metadata.Destination.Location != nil {
 			l := *j.Metadata.Destination.Location
 			h.Location = &l
@@ -125,15 +131,73 @@ func (r Resolve) Process(ctx context.Context, s *State) error {
 			h.Role = "isp"
 		}
 	}
+	r.dropDetours(s, env)
 	if src != nil {
 		j.Metadata.Source.Location = src
 	}
 	return nil
 }
 
+// rttFloor[i] is the smallest min-RTT measured at hop i or any later hop.
+// RTT noise (slow ICMP generation, queuing) only ever adds delay, and the
+// path to a later hop passes through hop i, so this is a tighter and more
+// robust bound on how far away hop i can be than hop i's own RTT.
+func rttFloor(s *State) []float64 {
+	out := make([]float64, len(s.Journey.Hops))
+	floor := math.Inf(1)
+	for i := len(s.Journey.Hops) - 1; i >= 0; i-- {
+		if s.Journey.Hops[i].Responded && s.hopMinMS[i] > 0 {
+			floor = math.Min(floor, s.hopMinMS[i])
+		}
+		if math.IsInf(floor, 1) {
+			out[i] = 0
+		} else {
+			out[i] = floor
+		}
+	}
+	return out
+}
+
+// dropDetours removes database locations that send the path on a detour
+// the RTTs can't pay for: e.g. London -> "Paris" -> London within 1 ms, or
+// Stockholm -> "Phoenix" -> Helsinki. Router-name hints are kept.
+func (r Resolve) dropDetours(s *State, env []float64) {
+	hops := s.Journey.Hops
+	located := func(i int) bool {
+		return hops[i].Responded && hops[i].Location != nil && hops[i].Location.Confidence >= 0.5 && hops[i].AddressClass == "public"
+	}
+	for i := range hops {
+		if !located(i) || hops[i].Location.Method != "prefix_db" {
+			continue
+		}
+		p, n := -1, -1
+		for k := i - 1; k >= 0; k-- {
+			if located(k) {
+				p = k
+				break
+			}
+		}
+		for k := i + 1; k < len(hops); k++ {
+			if located(k) {
+				n = k
+				break
+			}
+		}
+		if p < 0 || n < 0 {
+			continue
+		}
+		lp, li, ln := hops[p].Location, hops[i].Location, hops[n].Location
+		detour := haversineKM(lp.Lat, lp.Lon, li.Lat, li.Lon) + haversineKM(li.Lat, li.Lon, ln.Lat, ln.Lon) - haversineKM(lp.Lat, lp.Lon, ln.Lat, ln.Lon)
+		budget := math.Max(0, env[n]-env[p])/2*fiberKMPerMS + 300 + li.AccuracyKM + math.Max(lp.AccuracyKM, ln.AccuracyKM)
+		if detour > budget {
+			hops[i].Location = nil
+		}
+	}
+}
+
 // locate picks the best location evidence that passes the RTT check:
 // router hostname hint, then prefix database, then registry-country centroid.
-func (r Resolve) locate(addr netip.Addr, h *model.Hop, src *model.Location, minRTT float64) *model.Location {
+func (r Resolve) locate(addr netip.Addr, h *model.Hop, src, prev *model.Location, minRTT float64) *model.Location {
 	var cands []*model.Location
 	if h.Hostname != "" {
 		if c, _, ok := r.Ref.MatchHostname(h.Hostname); ok {
@@ -149,9 +213,23 @@ func (r Resolve) locate(addr netip.Addr, h *model.Hop, src *model.Location, minR
 		}
 	}
 	for _, c := range cands {
-		if src == nil || minRTT <= 0 || r.feasible(src, c, minRTT) {
+		if src == nil || minRTT <= 0 {
 			return c
 		}
+		if !r.feasible(src, c, minRTT) {
+			continue
+		}
+		// The packet reached this router via the previous one, so the
+		// whole path source -> previous -> here must fit in the RTT too.
+		// Router-name hints are trusted over a possibly wrong previous hop;
+		// registry-country guesses are not physical locations at all.
+		if prev != nil && c.Method == "prefix_db" {
+			via := haversineKM(src.Lat, src.Lon, prev.Lat, prev.Lon) + haversineKM(prev.Lat, prev.Lon, c.Lat, c.Lon)
+			if via > minRTT/2*fiberKMPerMS+c.AccuracyKM+prev.AccuracyKM+src.AccuracyKM+r.MinRTTSlack {
+				continue
+			}
+		}
+		return c
 	}
 	return nil
 }

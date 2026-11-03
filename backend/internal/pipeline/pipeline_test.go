@@ -349,3 +349,91 @@ func TestAnycastDestinationNotPlacedByDatabase(t *testing.T) {
 		t.Fatalf("destination hop placed in Australia")
 	}
 }
+
+// A real trace from Franklin Park, NJ (Verizon) to Hetzner Helsinki over
+// Arelion (AS1299), with the locations DB-IP Lite returned for each router.
+// The Atlantic crossing is Newark (ewr-bb2) -> Copenhagen (kbn-bb6); DB-IP
+// puts the Hetzner interconnect in Phoenix, which must not survive.
+func TestTransatlanticArelionTrace(t *testing.T) {
+	ref := store.NewSeededReference()
+	// The full TeleGeography snapshot when present (it is in the repo).
+	if _, err := store.LoadDataDir(ref, "../../../data"); err != nil {
+		t.Logf("full data not loaded: %v", err)
+	}
+	dbip := map[string][3]any{ // ip -> city, cc, [lat, lon]
+		"108.5.186.1":    {"Newark", "US", [2]float64{40.73, -74.17}},
+		"100.41.50.216":  {"Cambridge", "US", [2]float64{42.37, -71.11}},
+		"80.91.254.90":   {"Solna", "SE", [2]float64{59.36, 18.0}},
+		"62.115.139.172": {"Stockholm", "SE", [2]float64{59.33, 18.07}},
+		"62.115.123.203": {"Warsaw", "PL", [2]float64{52.23, 21.01}},
+		"62.115.137.134": {"Stockholm", "SE", [2]float64{59.31, 18.1}},
+		"213.248.95.243": {"Phoenix", "US", [2]float64{33.45, -112.07}},
+		"213.239.224.26": {"Helsinki", "FI", [2]float64{60.17, 24.94}},
+		"95.217.255.81":  {"Helsinki", "FI", [2]float64{60.17, 24.94}},
+	}
+	ref.SetGeoFallback(func(a netip.Addr) (store.GeoHit, bool) {
+		g, ok := dbip[a.String()]
+		if !ok {
+			return store.GeoHit{}, false
+		}
+		ll := g[2].([2]float64)
+		return store.GeoHit{Prefix: netip.PrefixFrom(a, 32), City: g[0].(string), CountryISO2: g[1].(string), Lat: ll[0], Lon: ll[1], AccuracyKM: 50}, true
+	})
+	dns := fakeDNS{
+		"108.5.186.1":    "lo0-100.NWRKNJ-VFTTP-321.verizon-gni.net",
+		"62.115.135.162": "ewr-bb2-link.ip.twelve99.net",
+		"80.91.254.90":   "kbn-bb6-link.ip.twelve99.net",
+		"62.115.139.172": "sto-bb2-link.ip.twelve99.net",
+		"62.115.123.203": "hls-b4-link.ip.twelve99.net",
+		"62.115.137.134": "hls-b6-link.ip.twelve99.net",
+		"213.248.95.243": "hetzner-ic-376888.ip.twelve99-cust.net",
+		"213.239.224.26": "core32.hel1.hetzner.com",
+		"95.217.255.81":  "hel1-speed.hetzner.com",
+	}
+	raw := buildTrace("95.217.255.81", []hopSpec{
+		{1, "192.168.1.1", []float64{0.7, 1.1, 1.4}, te},
+		{2, "108.5.186.1", []float64{4.9, 5.2, 6.0}, te},
+		{3, "100.41.50.216", []float64{4.6, 5.0, 5.9}, te},
+		{4, "", nil, 0},
+		{5, "", nil, 0},
+		{6, "62.115.135.162", []float64{6.6, 7.0, 8.1}, te},
+		{7, "80.91.254.90", []float64{105.9, 106.4, 107.0}, te},
+		{8, "62.115.139.172", []float64{118.5, 119.0, 120.2}, te},
+		{9, "62.115.123.203", []float64{94.7, 95.3, 96.0}, te},
+		{10, "62.115.137.134", []float64{96.8, 97.1, 98.0}, te},
+		{11, "213.248.95.243", []float64{102.4, 102.9, 103.5}, te},
+		{12, "213.239.224.26", []float64{103.5, 104.0, 104.6}, te},
+		{13, "", nil, 0},
+		{14, "95.217.255.81", []float64{104.8, 105.1, 105.9}, echo},
+	})
+	nj := &model.Location{Lat: 40.439, Lon: -74.5352, City: "Franklin Park", CountryISO2: "US", AccuracyKM: 25, Method: "prefix_db", Confidence: 0.7}
+	j, err := Default(ref, store.NewMemoryRepository(1), dns, nil).Run(context.Background(), raw, Request{Target: "hel1-speed.hetzner.com", SourceLocation: nj})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := schema.Validate(j); err != nil {
+		t.Fatal(err)
+	}
+	city := func(n int) string {
+		if l := j.Hops[n-1].Location; l != nil {
+			return l.City
+		}
+		return ""
+	}
+	if city(6) != "Newark" || city(7) != "Copenhagen" || city(9) != "Helsinki" || city(11) == "Phoenix" {
+		t.Fatalf("cities: 6=%q 7=%q 9=%q 11=%q", city(6), city(7), city(9), city(11))
+	}
+	var crossing *model.Segment
+	for i, s := range j.Infrastructure.Segments {
+		if s.Medium == model.MediumSubseaCable {
+			if s.ToHop != 7 {
+				t.Errorf("unexpected subsea segment %d->%d (%v)", s.FromHop, s.ToHop, s.Countries)
+			}
+			crossing = &j.Infrastructure.Segments[i]
+		}
+	}
+	if crossing == nil || crossing.SubseaCable == nil {
+		t.Fatalf("no transatlantic subsea segment: %+v", j.Infrastructure.Segments)
+	}
+	t.Logf("crossing %d->%d via %s (p=%.2f)", crossing.FromHop, crossing.ToHop, crossing.SubseaCable.Name, crossing.SubseaCable.Probability)
+}

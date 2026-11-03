@@ -198,6 +198,20 @@ func (r *MemoryReference) Country(iso2 string) (Country, bool) {
 	return c, ok
 }
 
+// CablesFrom returns in-service cables with a landing in the country.
+func (r *MemoryReference) CablesFrom(country string) []Cable {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var out []Cable
+	for id := range r.byCountry[country] {
+		if !r.cables[id].Planned {
+			out = append(out, r.cables[id])
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
+
 // CablesBetween returns in-service cables with landings in both countries.
 func (r *MemoryReference) CablesBetween(a, b string) []Cable {
 	r.mu.RLock()

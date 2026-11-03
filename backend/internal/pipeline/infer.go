@@ -62,8 +62,22 @@ func (in InferInfrastructure) Process(_ context.Context, s *State) error {
 
 	j.Infrastructure = model.Infrastructure{Segments: []model.Segment{}, MediaSummary: []string{}}
 	seen := map[string]bool{}
+	anchor := -1 // last node with a usable location
+	if nodes[0].loc != nil {
+		anchor = 0
+	}
 	for k := 1; k < len(nodes); k++ {
-		seg := in.classify(s, nodes[k-1], nodes[k], len(j.Infrastructure.Segments))
+		a := nodes[k-1]
+		// Routers that hide their location (no geo data, MPLS, filtered)
+		// sit right before ocean crossings surprisingly often. Measure the
+		// link from the last located hop instead of giving up on it.
+		if a.loc == nil && nodes[k].loc != nil && anchor >= 0 {
+			a.loc, a.minRTT = nodes[anchor].loc, nodes[anchor].minRTT
+		}
+		seg := in.classify(s, a, nodes[k], len(j.Infrastructure.Segments))
+		if nodes[k].loc != nil {
+			anchor = k
+		}
 		j.Infrastructure.Segments = append(j.Infrastructure.Segments, seg)
 		if !seen[seg.Medium] {
 			seen[seg.Medium] = true
@@ -175,7 +189,21 @@ func (in InferInfrastructure) longHaul(s *State, seg *model.Segment, a, b node, 
 	if mustSea {
 		seg.Confidence = 0.85
 	}
-	ranked := rankCables(cables, a, b, seg.DeltaRTTMS)
+	sameCountry := func(cc string) func(string) bool { return func(x string) bool { return x == cc } }
+	ranked := rankCables(cables, a, b, seg.DeltaRTTMS, sameCountry(ca), sameCountry(cb))
+	if len(ranked) == 0 && mustSea && okA && okB {
+		// No cable lands in both countries: the crossing landed elsewhere on
+		// the far continent (e.g. New Jersey -> Ireland, then on to Denmark
+		// by land). Rank cables from A's country to anywhere on B's continent;
+		// far landings score lower through the RTT and proximity terms.
+		onContinent := func(cont string) func(string) bool {
+			return func(x string) bool { c, ok := in.Ref.Country(x); return ok && c.Continent == cont }
+		}
+		ranked = rankCables(in.Ref.CablesFrom(ca), a, b, seg.DeltaRTTMS, sameCountry(ca), onContinent(countryB.Continent))
+		if len(ranked) == 0 {
+			ranked = rankCables(in.Ref.CablesFrom(cb), a, b, seg.DeltaRTTMS, onContinent(countryA.Continent), sameCountry(cb))
+		}
+	}
 	if len(ranked) == 0 {
 		return // subsea, but no known cable between these countries
 	}
@@ -202,13 +230,13 @@ type rankedCable struct {
 
 // rankCables scores every cable connecting the two countries by RTT fit,
 // operator ownership and landing proximity, then normalises to probabilities.
-func rankCables(cables []store.Cable, a, b node, deltaRTT float64) []rankedCable {
+func rankCables(cables []store.Cable, a, b node, deltaRTT float64, okA, okB func(string) bool) []rankedCable {
 	keys := orgKeywords(a.org, b.org)
 	var out []rankedCable
 	total := 0.0
 	for _, c := range cables {
-		la, da := nearestLanding(c, a.loc)
-		lb, db := nearestLanding(c, b.loc)
+		la, da := nearestLanding(c, a.loc, okA)
+		lb, db := nearestLanding(c, b.loc, okB)
 		if la.ID == "" || lb.ID == "" {
 			continue
 		}
@@ -238,10 +266,10 @@ func rankCables(cables []store.Cable, a, b node, deltaRTT float64) []rankedCable
 	return out
 }
 
-func nearestLanding(c store.Cable, loc *model.Location) (store.LandingPoint, float64) {
+func nearestLanding(c store.Cable, loc *model.Location, ok func(string) bool) (store.LandingPoint, float64) {
 	best, bestD := store.LandingPoint{}, math.Inf(1)
 	for _, l := range c.Landings {
-		if l.CountryISO2 != loc.CountryISO2 {
+		if !ok(l.CountryISO2) {
 			continue
 		}
 		if d := haversineKM(loc.Lat, loc.Lon, l.Lat, l.Lon); d < bestD {
