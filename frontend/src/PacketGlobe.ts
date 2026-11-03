@@ -27,6 +27,8 @@ export interface PacketGlobeOptions {
   container: HTMLElement;
   /** URL of land.json (Natural Earth basemap); null to skip */
   landUrl?: string | null;
+  /** Base URL of the realistic Earth textures (null = stylised globe only). */
+  texturesUrl?: string | null;
   maxPixelRatio?: number;
   arcCapacity?: number;
   hopCapacity?: number;
@@ -119,6 +121,7 @@ export class PacketGlobe {
 
     if (opts.landUrl !== null) {
       this.earth.loadLand(opts.landUrl ?? "data/land.json").catch((err) => console.warn("PacketGlobe: basemap not loaded", err));
+      if (opts.texturesUrl !== null) this.earth.loadTextures(opts.texturesUrl ?? "textures/", this.renderer).catch((err) => console.warn("PacketGlobe: realistic Earth textures not loaded", err));
     }
 
     this.resizeObs = new ResizeObserver(() => this.resize());
@@ -475,6 +478,7 @@ export class PacketGlobe {
     const t = this.timer.getElapsed();
     this.controls.update(dt);
     const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    this.earth.update(t);
     this.arcs.update(t, size.x, size.y);
     this.hops.update(t, this.renderer.getPixelRatio());
     if (this.business) this.alerts.update(t, this.renderer.getPixelRatio());

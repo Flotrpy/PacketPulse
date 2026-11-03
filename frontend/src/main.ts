@@ -23,7 +23,11 @@ const container = $("#globe");
 const statusEl = $("#status");
 const inspector = $("#inspector");
 
-const globe = new PacketGlobe({ container, landUrl: `${import.meta.env.BASE_URL}data/land.json` });
+const globe = new PacketGlobe({
+  container,
+  landUrl: `${import.meta.env.BASE_URL}data/land.json`,
+  texturesUrl: `${import.meta.env.BASE_URL}textures/`,
+});
 (window as unknown as { packetGlobe: PacketGlobe }).packetGlobe = globe; // handy for console debugging
 const business = new BusinessMode(globe, $("#business"));
 (window as unknown as { business: BusinessMode }).business = business;
