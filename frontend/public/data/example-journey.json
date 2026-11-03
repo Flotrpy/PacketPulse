@@ -1,0 +1,605 @@
+{
+  "schema_version": "1.0.0",
+  "journey_id": "effa0ef2-7e1d-41d5-a13b-9c6247d30b40",
+  "metadata": {
+    "timestamp": "2026-11-02T13:05:01Z",
+    "completed_at": "2026-11-02T13:05:05Z",
+    "protocol": "icmp",
+    "ip_version": 4,
+    "agent_id": "android-7f3a",
+    "source": {
+      "ip": "100.72.14.9",
+      "location": {
+        "lat": 19.0596,
+        "lon": 72.8295,
+        "city": "Mumbai",
+        "country_iso2": "IN",
+        "accuracy_km": 5,
+        "method": "configured",
+        "confidence": 1
+      },
+      "access_type": "cellular"
+    },
+    "destination": {
+      "ip": "18.96.32.10",
+      "asn": 16509,
+      "as_org": "AMAZON-02 - Amazon.com, Inc.",
+      "location": {
+        "lat": 50.1109,
+        "lon": 8.6821,
+        "city": "Frankfurt",
+        "country_iso2": "DE",
+        "accuracy_km": 50,
+        "method": "prefix_db",
+        "confidence": 0.7
+      },
+      "cloud_provider": "aws"
+    },
+    "probe": {
+      "first_ttl": 1,
+      "max_hops": 30,
+      "probes_per_hop": 3,
+      "timeout_ms": 2000
+    },
+    "reached_destination": true,
+    "duration_ms": 4000,
+    "data_classification": {
+      "labels": [
+        "payment_system_data"
+      ],
+      "source": "rules",
+      "rule_ids": [
+        "india-payment-apps"
+      ],
+      "app": "upi-payments",
+      "port": 443
+    }
+  },
+  "hops": [
+    {
+      "hop_number": 1,
+      "responded": true,
+      "ip": "100.72.0.1",
+      "address_class": "cgnat",
+      "role": "cgnat",
+      "rtt_ms": {
+        "samples": [
+          9.8,
+          14.2,
+          21
+        ],
+        "min": 9.8,
+        "avg": 15,
+        "max": 21,
+        "stdev": 4.607,
+        "jitter": 5.6
+      },
+      "probes_sent": 3,
+      "probes_received": 3,
+      "loss_pct": 0,
+      "icmp_type": "time_exceeded",
+      "location": {
+        "lat": 19.0596,
+        "lon": 72.8295,
+        "city": "Mumbai",
+        "country_iso2": "IN",
+        "accuracy_km": 30,
+        "method": "inherited",
+        "confidence": 0.5
+      },
+      "border_violation": false
+    },
+    {
+      "hop_number": 2,
+      "responded": false,
+      "address_class": "unknown",
+      "role": "unknown",
+      "rtt_ms": {
+        "samples": [],
+        "min": 0,
+        "avg": 0,
+        "max": 0,
+        "stdev": 0,
+        "jitter": 0
+      },
+      "probes_sent": 3,
+      "probes_received": 0,
+      "loss_pct": 100,
+      "border_violation": false
+    },
+    {
+      "hop_number": 3,
+      "responded": true,
+      "ip": "49.36.0.1",
+      "asn": 55836,
+      "as_org": "RELIANCEJIO-IN - Reliance Jio Infocomm Limited",
+      "registry_country": "IN",
+      "address_class": "public",
+      "role": "mno_gateway",
+      "rtt_ms": {
+        "samples": [
+          18.1,
+          19.4,
+          21.2
+        ],
+        "min": 18.1,
+        "avg": 19.567,
+        "max": 21.2,
+        "stdev": 1.271,
+        "jitter": 1.55
+      },
+      "probes_sent": 3,
+      "probes_received": 3,
+      "loss_pct": 0,
+      "icmp_type": "time_exceeded",
+      "location": {
+        "lat": 19.033,
+        "lon": 73.0297,
+        "city": "Navi Mumbai",
+        "country_iso2": "IN",
+        "accuracy_km": 25,
+        "method": "prefix_db",
+        "confidence": 0.7
+      },
+      "border_violation": false
+    },
+    {
+      "hop_number": 4,
+      "responded": true,
+      "ip": "180.87.38.1",
+      "hostname": "if-ae-2-2.tcore1.mlv-mumbai.as6453.net",
+      "asn": 6453,
+      "as_org": "AS6453 - TATA COMMUNICATIONS (AMERICA) INC",
+      "registry_country": "US",
+      "address_class": "public",
+      "role": "backbone",
+      "rtt_ms": {
+        "samples": [
+          19.6,
+          20.3,
+          21.4
+        ],
+        "min": 19.6,
+        "avg": 20.433,
+        "max": 21.4,
+        "stdev": 0.741,
+        "jitter": 0.9
+      },
+      "probes_sent": 3,
+      "probes_received": 3,
+      "loss_pct": 0,
+      "icmp_type": "time_exceeded",
+      "location": {
+        "lat": 19.076,
+        "lon": 72.8777,
+        "city": "Mumbai",
+        "country_iso2": "IN",
+        "accuracy_km": 30,
+        "method": "rdns_hint",
+        "confidence": 0.85
+      },
+      "border_violation": false
+    },
+    {
+      "hop_number": 5,
+      "responded": true,
+      "ip": "80.231.200.1",
+      "hostname": "if-be-2-2.ecore1.emrs2-marseille.as6453.net",
+      "asn": 6453,
+      "as_org": "AS6453 - TATA COMMUNICATIONS (AMERICA) INC",
+      "registry_country": "US",
+      "address_class": "public",
+      "role": "backbone",
+      "rtt_ms": {
+        "samples": [
+          112.4,
+          113.9,
+          118.8
+        ],
+        "min": 112.4,
+        "avg": 115.033,
+        "max": 118.8,
+        "stdev": 2.733,
+        "jitter": 3.2
+      },
+      "probes_sent": 3,
+      "probes_received": 3,
+      "loss_pct": 0,
+      "icmp_type": "time_exceeded",
+      "location": {
+        "lat": 43.2965,
+        "lon": 5.3698,
+        "city": "Marseille",
+        "country_iso2": "FR",
+        "accuracy_km": 30,
+        "method": "rdns_hint",
+        "confidence": 0.85
+      },
+      "border_violation": true
+    },
+    {
+      "hop_number": 6,
+      "responded": true,
+      "ip": "80.231.153.1",
+      "hostname": "if-ae-11-2.tcore1.pvu-paris.as6453.net",
+      "asn": 6453,
+      "as_org": "AS6453 - TATA COMMUNICATIONS (AMERICA) INC",
+      "registry_country": "US",
+      "address_class": "public",
+      "role": "backbone",
+      "rtt_ms": {
+        "samples": [
+          121,
+          128.7,
+          141.5
+        ],
+        "min": 121,
+        "avg": 130.4,
+        "max": 141.5,
+        "stdev": 8.455,
+        "jitter": 10.25
+      },
+      "probes_sent": 3,
+      "probes_received": 3,
+      "loss_pct": 0,
+      "icmp_type": "time_exceeded",
+      "location": {
+        "lat": 48.8566,
+        "lon": 2.3522,
+        "city": "Paris",
+        "country_iso2": "FR",
+        "accuracy_km": 30,
+        "method": "rdns_hint",
+        "confidence": 0.85
+      },
+      "border_violation": true
+    },
+    {
+      "hop_number": 7,
+      "responded": true,
+      "ip": "52.93.0.1",
+      "asn": 16509,
+      "as_org": "AMAZON-02 - Amazon.com, Inc.",
+      "registry_country": "US",
+      "address_class": "public",
+      "role": "cloud_edge",
+      "rtt_ms": {
+        "samples": [
+          127.9,
+          129.2,
+          131
+        ],
+        "min": 127.9,
+        "avg": 129.367,
+        "max": 131,
+        "stdev": 1.271,
+        "jitter": 1.55
+      },
+      "probes_sent": 3,
+      "probes_received": 3,
+      "loss_pct": 0,
+      "icmp_type": "time_exceeded",
+      "location": {
+        "lat": 39.8,
+        "lon": -98.6,
+        "country_iso2": "US",
+        "accuracy_km": 1000,
+        "method": "registry_country",
+        "confidence": 0.2
+      },
+      "border_violation": false
+    },
+    {
+      "hop_number": 8,
+      "responded": true,
+      "ip": "18.96.32.10",
+      "asn": 16509,
+      "as_org": "AMAZON-02 - Amazon.com, Inc.",
+      "registry_country": "US",
+      "address_class": "public",
+      "role": "destination",
+      "rtt_ms": {
+        "samples": [
+          128.6,
+          129.9,
+          132.2
+        ],
+        "min": 128.6,
+        "avg": 130.233,
+        "max": 132.2,
+        "stdev": 1.488,
+        "jitter": 1.8
+      },
+      "probes_sent": 3,
+      "probes_received": 3,
+      "loss_pct": 0,
+      "icmp_type": "echo_reply",
+      "location": {
+        "lat": 50.1109,
+        "lon": 8.6821,
+        "city": "Frankfurt",
+        "country_iso2": "DE",
+        "accuracy_km": 50,
+        "method": "prefix_db",
+        "confidence": 0.7
+      },
+      "border_violation": true
+    }
+  ],
+  "infrastructure": {
+    "segments": [
+      {
+        "from_hop": 0,
+        "to_hop": 1,
+        "medium": "cellular_backhaul",
+        "confidence": 0.8,
+        "distance_km": 0,
+        "delta_rtt_ms": 9.8,
+        "min_feasible_rtt_ms": 0,
+        "health": "green",
+        "countries": [
+          "IN"
+        ],
+        "cellular_backhaul": {
+          "carrier": "Reliance Jio Infocomm",
+          "asn": 55836,
+          "country": "IN",
+          "gateway_ip": "49.36.0.1",
+          "cgnat_detected": true
+        }
+      },
+      {
+        "from_hop": 1,
+        "to_hop": 3,
+        "medium": "cellular_backhaul",
+        "confidence": 0.8,
+        "distance_km": 21.2,
+        "delta_rtt_ms": 8.3,
+        "min_feasible_rtt_ms": 0.208,
+        "health": "green",
+        "countries": [
+          "IN"
+        ],
+        "cellular_backhaul": {
+          "carrier": "Reliance Jio Infocomm",
+          "asn": 55836,
+          "country": "IN",
+          "gateway_ip": "49.36.0.1",
+          "cgnat_detected": true
+        }
+      },
+      {
+        "from_hop": 3,
+        "to_hop": 4,
+        "medium": "metro_fiber",
+        "confidence": 0.75,
+        "distance_km": 16.7,
+        "delta_rtt_ms": 1.5,
+        "min_feasible_rtt_ms": 0.164,
+        "health": "green",
+        "countries": [
+          "IN"
+        ],
+        "terrestrial_isp": {
+          "asn": 6453,
+          "name": "AS6453 - TATA COMMUNICATIONS (AMERICA) INC"
+        }
+      },
+      {
+        "from_hop": 4,
+        "to_hop": 5,
+        "medium": "subsea_cable",
+        "confidence": 0.75,
+        "distance_km": 6765,
+        "delta_rtt_ms": 92.8,
+        "min_feasible_rtt_ms": 66.259,
+        "health": "green",
+        "countries": [
+          "IN",
+          "FR"
+        ],
+        "subsea_cable": {
+          "cable_id": "imewe",
+          "name": "IMEWE",
+          "landing_a": "mumbai-india",
+          "landing_b": "marseille-france",
+          "probability": 0.314,
+          "owner_match": true,
+          "alternatives": [
+            {
+              "cable_id": "seamewe-4",
+              "name": "SeaMeWe-4",
+              "probability": 0.314
+            },
+            {
+              "cable_id": "2africa",
+              "name": "2Africa",
+              "probability": 0.186
+            },
+            {
+              "cable_id": "asia-africa-europe-1-aae-1",
+              "name": "Asia Africa Europe-1 (AAE-1)",
+              "probability": 0.186
+            }
+          ]
+        }
+      },
+      {
+        "from_hop": 5,
+        "to_hop": 6,
+        "medium": "terrestrial_fiber",
+        "confidence": 0.7,
+        "distance_km": 660.5,
+        "delta_rtt_ms": 8.6,
+        "min_feasible_rtt_ms": 6.469,
+        "health": "amber",
+        "countries": [
+          "FR"
+        ],
+        "terrestrial_isp": {
+          "asn": 6453,
+          "name": "AS6453 - TATA COMMUNICATIONS (AMERICA) INC"
+        }
+      },
+      {
+        "from_hop": 6,
+        "to_hop": 7,
+        "medium": "unknown",
+        "confidence": 0,
+        "distance_km": 0,
+        "delta_rtt_ms": 6.9,
+        "min_feasible_rtt_ms": 0,
+        "health": "grey",
+        "countries": []
+      },
+      {
+        "from_hop": 7,
+        "to_hop": 8,
+        "medium": "cloud_backbone",
+        "confidence": 0.9,
+        "distance_km": 0,
+        "delta_rtt_ms": 0.7,
+        "min_feasible_rtt_ms": 0,
+        "health": "green",
+        "countries": [],
+        "terrestrial_isp": {
+          "asn": 16509,
+          "name": "AMAZON-02 - Amazon.com, Inc."
+        }
+      }
+    ],
+    "media_summary": [
+      "cellular_backhaul",
+      "metro_fiber",
+      "subsea_cable",
+      "terrestrial_fiber",
+      "unknown",
+      "cloud_backbone"
+    ]
+  },
+  "compliance": {
+    "policy_id": "in-rbi-payments",
+    "evaluated": true,
+    "allowed_countries": [
+      "IN"
+    ],
+    "flags": {
+      "boundary_violation": true,
+      "left_allowed_region": true,
+      "destination_outside_region": true,
+      "transited_restricted_country": false,
+      "international_subsea_crossing": true,
+      "unresolved_hops_present": true
+    },
+    "verdict": "violation",
+    "countries_traversed": [
+      "IN",
+      "FR",
+      "DE"
+    ],
+    "possible_transit_countries": [
+      "AE",
+      "EG",
+      "IT",
+      "LB",
+      "PK",
+      "SA"
+    ],
+    "violating_hops": [
+      5,
+      6,
+      8
+    ],
+    "alerts": [
+      {
+        "severity": "warning",
+        "rule": "transit_outside_region",
+        "country": "FR",
+        "hop_number": 5,
+        "message": "Hop 5 (80.231.200.1) transits FR, outside the allowed region of policy in-rbi-payments."
+      },
+      {
+        "severity": "warning",
+        "rule": "transit_outside_region",
+        "country": "FR",
+        "hop_number": 6,
+        "message": "Hop 6 (80.231.153.1) transits FR, outside the allowed region of policy in-rbi-payments."
+      },
+      {
+        "severity": "critical",
+        "rule": "destination_outside_region",
+        "country": "DE",
+        "message": "Data terminates in DE (18.96.32.10), outside the allowed region of policy in-rbi-payments."
+      },
+      {
+        "severity": "info",
+        "rule": "possible_transit_outside_region",
+        "country": "AE",
+        "message": "The inferred subsea cable also lands in AE, outside the allowed region."
+      },
+      {
+        "severity": "info",
+        "rule": "possible_transit_outside_region",
+        "country": "EG",
+        "message": "The inferred subsea cable also lands in EG, outside the allowed region."
+      },
+      {
+        "severity": "info",
+        "rule": "possible_transit_outside_region",
+        "country": "IT",
+        "message": "The inferred subsea cable also lands in IT, outside the allowed region."
+      },
+      {
+        "severity": "info",
+        "rule": "possible_transit_outside_region",
+        "country": "LB",
+        "message": "The inferred subsea cable also lands in LB, outside the allowed region."
+      },
+      {
+        "severity": "info",
+        "rule": "possible_transit_outside_region",
+        "country": "PK",
+        "message": "The inferred subsea cable also lands in PK, outside the allowed region."
+      },
+      {
+        "severity": "info",
+        "rule": "possible_transit_outside_region",
+        "country": "SA",
+        "message": "The inferred subsea cable also lands in SA, outside the allowed region."
+      },
+      {
+        "severity": "info",
+        "rule": "unresolved_hops",
+        "message": "Some hops did not answer or could not be located with confidence; their jurisdiction is unknown."
+      }
+    ]
+  },
+  "pipeline": {
+    "stages": [
+      {
+        "name": "normalize",
+        "duration_ms": 0.075
+      },
+      {
+        "name": "resolve",
+        "duration_ms": 0.149
+      },
+      {
+        "name": "classify",
+        "duration_ms": 0.004
+      },
+      {
+        "name": "infer_infrastructure",
+        "duration_ms": 0.084
+      },
+      {
+        "name": "compliance",
+        "duration_ms": 0.024
+      },
+      {
+        "name": "persist",
+        "duration_ms": 0.352
+      }
+    ]
+  }
+}

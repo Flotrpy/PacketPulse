@@ -1,0 +1,1447 @@
+{
+  "schema_version": "1.0.0",
+  "map_id": "4f1c2b9e-8d3a-4e57-9b61-2a7c5d0e9f13",
+  "generated_at": "2026-11-02T15:00:00Z",
+  "trace": {
+    "target": "18.96.32.10",
+    "source": "100.72.14.9",
+    "protocol": "icmp",
+    "started_at": "2026-11-02T13:05:01Z",
+    "finished_at": "2026-11-02T13:05:05Z",
+    "reached_destination": true,
+    "destination_ttl": 8,
+    "hop_count": 8
+  },
+  "device": {
+    "location": {
+      "lat": 19.0596,
+      "lon": 72.8295,
+      "accuracy_km": 1,
+      "source": "device"
+    },
+    "country": "IN",
+    "access_type": "cellular",
+    "mcc": "405",
+    "mnc": "874"
+  },
+  "hops": [
+    {
+      "ttl": 1,
+      "responded": true,
+      "ip": "100.72.0.1",
+      "address_class": "cgnat",
+      "rtt_ms": {
+        "min": 9.8,
+        "avg": 15,
+        "max": 21,
+        "jitter": 5.6,
+        "samples": [
+          9.8,
+          14.2,
+          21
+        ]
+      },
+      "loss_pct": 0,
+      "geo": null,
+      "location_status": "non_routable",
+      "role": "cgnat"
+    },
+    {
+      "ttl": 2,
+      "responded": false,
+      "address_class": "unknown",
+      "rtt_ms": {
+        "min": 0,
+        "avg": 0,
+        "max": 0,
+        "jitter": 0,
+        "samples": []
+      },
+      "loss_pct": 100,
+      "geo": null,
+      "location_status": "no_reply",
+      "role": "no_reply"
+    },
+    {
+      "ttl": 3,
+      "responded": true,
+      "ip": "49.36.0.1",
+      "address_class": "public",
+      "rtt_ms": {
+        "min": 18.1,
+        "avg": 19.567,
+        "max": 21.2,
+        "jitter": 1.55,
+        "samples": [
+          18.1,
+          19.4,
+          21.2
+        ]
+      },
+      "loss_pct": 0,
+      "asn": 55836,
+      "as_org": "Reliance Jio Infocomm Limited",
+      "geo": {
+        "ip": "49.36.0.1",
+        "lat": 19.12118,
+        "lon": 72.92689,
+        "has_location": true,
+        "accuracy_km": 50,
+        "city": "Mumbai",
+        "country_iso2": "IN",
+        "asn": 55836,
+        "as_org": "Reliance Jio Infocomm Limited",
+        "sources": {
+          "asn": "maxmind",
+          "location": "mno_gateway_hub"
+        }
+      },
+      "location_status": "accepted",
+      "location_note": "GeoIP places this mobile egress address in Mangaluru, 720 km from the assigned hub; mobile address pools are geolocated by registration, so the gateway is placed at the operator's nearest regional hub",
+      "role": "mno_gateway"
+    },
+    {
+      "ttl": 4,
+      "responded": true,
+      "ip": "180.87.38.1",
+      "address_class": "public",
+      "hostname": "if-ae-2-2.tcore1.mlv-mumbai.as6453.net",
+      "rtt_ms": {
+        "min": 19.6,
+        "avg": 20.433,
+        "max": 21.4,
+        "jitter": 0.9,
+        "samples": [
+          19.6,
+          20.3,
+          21.4
+        ]
+      },
+      "loss_pct": 0,
+      "asn": 6453,
+      "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+      "geo": {
+        "ip": "180.87.38.1",
+        "lat": 18.9582,
+        "lon": 72.832,
+        "has_location": true,
+        "accuracy_km": 50,
+        "city": "Mumbai",
+        "region": "Maharashtra",
+        "country_iso2": "IN",
+        "asn": 6453,
+        "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+        "sources": {
+          "asn": "maxmind",
+          "location": "maxmind"
+        }
+      },
+      "location_status": "accepted",
+      "role": "router"
+    },
+    {
+      "ttl": 5,
+      "responded": true,
+      "ip": "80.231.200.1",
+      "address_class": "public",
+      "hostname": "if-be-2-2.ecore1.emrs2-marseille.as6453.net",
+      "rtt_ms": {
+        "min": 112.4,
+        "avg": 115.033,
+        "max": 118.8,
+        "jitter": 3.2,
+        "samples": [
+          112.4,
+          113.9,
+          118.8
+        ]
+      },
+      "loss_pct": 0,
+      "asn": 6453,
+      "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+      "geo": {
+        "ip": "80.231.200.1",
+        "lat": 43.3026,
+        "lon": 5.36907,
+        "has_location": true,
+        "accuracy_km": 50,
+        "city": "Marseille",
+        "region": "Provence-Alpes-Côte d'Azur",
+        "country_iso2": "FR",
+        "asn": 6453,
+        "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+        "sources": {
+          "asn": "maxmind",
+          "location": "maxmind"
+        }
+      },
+      "location_status": "accepted",
+      "role": "router"
+    },
+    {
+      "ttl": 6,
+      "responded": true,
+      "ip": "80.231.153.1",
+      "address_class": "public",
+      "hostname": "if-ae-11-2.tcore1.pvu-paris.as6453.net",
+      "rtt_ms": {
+        "min": 121,
+        "avg": 130.4,
+        "max": 141.5,
+        "jitter": 10.25,
+        "samples": [
+          121,
+          128.7,
+          141.5
+        ]
+      },
+      "loss_pct": 0,
+      "asn": 6453,
+      "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+      "geo": {
+        "ip": "80.231.153.1",
+        "lat": 48.8575,
+        "lon": 2.35138,
+        "has_location": true,
+        "accuracy_km": 50,
+        "city": "Paris",
+        "region": "Île-de-France",
+        "country_iso2": "FR",
+        "asn": 6453,
+        "as_org": "TATA COMMUNICATIONS (AMERICA) INC",
+        "sources": {
+          "asn": "maxmind",
+          "location": "maxmind"
+        }
+      },
+      "location_status": "accepted",
+      "role": "router"
+    },
+    {
+      "ttl": 7,
+      "responded": true,
+      "ip": "52.93.0.1",
+      "address_class": "public",
+      "rtt_ms": {
+        "min": 127.9,
+        "avg": 129.367,
+        "max": 131,
+        "jitter": 1.55,
+        "samples": [
+          127.9,
+          129.2,
+          131
+        ]
+      },
+      "loss_pct": 0,
+      "asn": 16509,
+      "as_org": "Amazon.com, Inc.",
+      "geo": {
+        "ip": "52.93.0.1",
+        "lat": 53.3498,
+        "lon": -6.2603100000000005,
+        "has_location": true,
+        "accuracy_km": 50,
+        "city": "Dublin",
+        "region": "Leinster",
+        "country_iso2": "IE",
+        "asn": 16509,
+        "as_org": "Amazon.com, Inc.",
+        "sources": {
+          "asn": "maxmind",
+          "location": "maxmind"
+        }
+      },
+      "location_status": "rejected_detour",
+      "location_note": "placing it in Dublin adds a 1391 km detour between its neighbours; their RTT difference allows 976 km",
+      "role": "cloud_edge"
+    },
+    {
+      "ttl": 8,
+      "responded": true,
+      "ip": "18.96.32.10",
+      "address_class": "public",
+      "rtt_ms": {
+        "min": 128.6,
+        "avg": 130.233,
+        "max": 132.2,
+        "jitter": 1.8,
+        "samples": [
+          128.6,
+          129.9,
+          132.2
+        ]
+      },
+      "loss_pct": 0,
+      "asn": 16509,
+      "as_org": "Amazon.com, Inc.",
+      "geo": {
+        "ip": "18.96.32.10",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "has_location": true,
+        "accuracy_km": 50,
+        "city": "Frankfurt am Main",
+        "region": "Hesse",
+        "country_iso2": "DE",
+        "asn": 16509,
+        "as_org": "Amazon.com, Inc.",
+        "sources": {
+          "asn": "maxmind",
+          "location": "maxmind"
+        }
+      },
+      "location_status": "accepted",
+      "role": "destination"
+    }
+  ],
+  "links": [
+    {
+      "index": 0,
+      "from": {
+        "ttl": 0,
+        "label": "device",
+        "lat": 19.0596,
+        "lon": 72.8295,
+        "country_iso2": "IN"
+      },
+      "to": {
+        "ttl": 3,
+        "ip": "49.36.0.1",
+        "label": "Mumbai",
+        "lat": 19.12118,
+        "lon": 72.92689,
+        "country_iso2": "IN"
+      },
+      "via_unlocated_ttls": [
+        1,
+        2
+      ],
+      "distance_km": 12.3,
+      "delta_rtt_ms": 18.1,
+      "min_feasible_rtt_ms": 0.12,
+      "medium": "cellular_backhaul",
+      "confidence": 0.98,
+      "operator": {
+        "asn": 55836,
+        "name": "Reliance Jio Infocomm Limited"
+      },
+      "ocean": {
+        "distance_km": 12.3,
+        "crosses_ocean": false,
+        "water_km": 0,
+        "longest_water_km": 0,
+        "water_fraction": 0,
+        "countries_overflown": [
+          "IN"
+        ],
+        "water_runs": []
+      },
+      "cellular": {
+        "operator": "Reliance Jio Infocomm",
+        "asn": 55836,
+        "gateway_hub_id": "in-mumbai"
+      }
+    },
+    {
+      "index": 1,
+      "from": {
+        "ttl": 3,
+        "ip": "49.36.0.1",
+        "label": "Mumbai",
+        "lat": 19.12118,
+        "lon": 72.92689,
+        "country_iso2": "IN"
+      },
+      "to": {
+        "ttl": 4,
+        "ip": "180.87.38.1",
+        "label": "Mumbai",
+        "lat": 18.9582,
+        "lon": 72.832,
+        "country_iso2": "IN"
+      },
+      "distance_km": 20.7,
+      "delta_rtt_ms": 1.5,
+      "min_feasible_rtt_ms": 0.203,
+      "medium": "metro_fiber",
+      "confidence": 0.75,
+      "operator": {
+        "asn": 6453,
+        "name": "TATA COMMUNICATIONS (AMERICA) INC"
+      },
+      "ocean": {
+        "distance_km": 20.7,
+        "crosses_ocean": false,
+        "water_km": 0,
+        "longest_water_km": 0,
+        "water_fraction": 0,
+        "countries_overflown": [
+          "IN"
+        ],
+        "water_runs": []
+      }
+    },
+    {
+      "index": 2,
+      "from": {
+        "ttl": 4,
+        "ip": "180.87.38.1",
+        "label": "Mumbai",
+        "lat": 18.9582,
+        "lon": 72.832,
+        "country_iso2": "IN"
+      },
+      "to": {
+        "ttl": 5,
+        "ip": "80.231.200.1",
+        "label": "Marseille",
+        "lat": 43.3026,
+        "lon": 5.36907,
+        "country_iso2": "FR"
+      },
+      "distance_km": 6769.7,
+      "delta_rtt_ms": 92.8,
+      "min_feasible_rtt_ms": 66.305,
+      "medium": "subsea_cable",
+      "confidence": 0.9,
+      "operator": {
+        "asn": 6453,
+        "name": "TATA COMMUNICATIONS (AMERICA) INC"
+      },
+      "ocean": {
+        "distance_km": 6769.7,
+        "crosses_ocean": true,
+        "water_km": 1869.9,
+        "longest_water_km": 1150,
+        "water_fraction": 0.276,
+        "countries_overflown": [
+          "PK",
+          "IR",
+          "IQ",
+          "SY",
+          "TR",
+          "GR",
+          "BG",
+          "GR",
+          "BG",
+          "MK",
+          "XK",
+          "AL",
+          "ME",
+          "IT",
+          "FR"
+        ],
+        "water_runs": [
+          {
+            "from_km": 9.999577084496066,
+            "to_km": 1159.9509418015436,
+            "length_km": 1149.9513647170477,
+            "entry": {
+              "lat": 19.015628203156123,
+              "lon": 72.75881479914831
+            },
+            "exit": {
+              "lat": 25.397175926700132,
+              "lon": 63.96072506564962
+            },
+            "max_offshore_km": 150,
+            "coastal": false
+          },
+          {
+            "from_km": 4799.797000558111,
+            "to_km": 4939.791079741057,
+            "length_km": 139.99407918294582,
+            "entry": {
+              "lat": 40.559479998773064,
+              "lon": 28.97811266255752
+            },
+            "exit": {
+              "lat": 40.91041424104519,
+              "lon": 27.382411421775583
+            },
+            "max_offshore_km": 50,
+            "coastal": true
+          },
+          {
+            "from_km": 5679.759783993765,
+            "to_km": 6079.742867373608,
+            "length_km": 399.98308337984236,
+            "entry": {
+              "lat": 42.38511609078048,
+              "lon": 18.693690355979065
+            },
+            "exit": {
+              "lat": 42.901180150155845,
+              "lon": 13.853404708960255
+            },
+            "max_offshore_km": 100,
+            "coastal": false
+          },
+          {
+            "from_km": 6349.731448655001,
+            "to_km": 6669.717915358876,
+            "length_km": 319.9864667038746,
+            "entry": {
+              "lat": 43.1329022587493,
+              "lon": 10.547458637004679
+            },
+            "exit": {
+              "lat": 43.283407447447345,
+              "lon": 6.604323037813033
+            },
+            "max_offshore_km": 100,
+            "coastal": false
+          }
+        ]
+      },
+      "subsea": {
+        "selected": {
+          "cable_id": "seamewe-4",
+          "name": "SeaMeWe-4",
+          "probability": 0.228,
+          "score": 0.823,
+          "owner_match": true,
+          "matched_owners": [
+            "Tata Communications"
+          ],
+          "rfs_year": 2005,
+          "landing_a": {
+            "id": "mumbai-india",
+            "name": "Mumbai, India",
+            "country": "IN",
+            "lat": 19.07608,
+            "lon": 72.87587
+          },
+          "landing_b": {
+            "id": "marseille-france",
+            "name": "Marseille, France",
+            "country": "FR",
+            "lat": 43.29316,
+            "lon": 5.37263
+          },
+          "backhaul_a_km": 0.8,
+          "backhaul_b_km": 1,
+          "cable_path_km": 8919.7,
+          "expected_rtt_ms": 87.4,
+          "corridor_km": 193.9,
+          "score_components": {
+            "rtt_fit": 0.715,
+            "endpoints": 0.996,
+            "owner": 1,
+            "corridor": 0.616
+          },
+          "route": [
+            {
+              "lat": 18.95628,
+              "lon": 72.83896
+            },
+            {
+              "lat": 19.07607,
+              "lon": 72.8759
+            },
+            {
+              "lat": 19.52907,
+              "lon": 70.20002
+            },
+            {
+              "lat": 19.95262,
+              "lon": 66.60003
+            },
+            {
+              "lat": 19.95262,
+              "lon": 62.55003
+            },
+            {
+              "lat": 17.39502,
+              "lon": 58.95003
+            },
+            {
+              "lat": 15.66951,
+              "lon": 55.35004
+            },
+            {
+              "lat": 13.16372,
+              "lon": 48.60004
+            },
+            {
+              "lat": 12.39573,
+              "lon": 45.45004
+            },
+            {
+              "lat": 12.1209,
+              "lon": 44.55004
+            },
+            {
+              "lat": 12.39573,
+              "lon": 43.81879
+            },
+            {
+              "lat": 12.6154,
+              "lon": 43.39692
+            },
+            {
+              "lat": 12.83487,
+              "lon": 43.31254
+            },
+            {
+              "lat": 13.05415,
+              "lon": 43.20004
+            },
+            {
+              "lat": 13.9293,
+              "lon": 42.91879
+            },
+            {
+              "lat": 14.80115,
+              "lon": 42.41254
+            },
+            {
+              "lat": 16.5342,
+              "lon": 41.62504
+            },
+            {
+              "lat": 18.25182,
+              "lon": 40.61255
+            },
+            {
+              "lat": 20.37504,
+              "lon": 39.26255
+            },
+            {
+              "lat": 21.48153,
+              "lon": 39.18276
+            },
+            {
+              "lat": 22.05299,
+              "lon": 38.47505
+            },
+            {
+              "lat": 24.12262,
+              "lon": 37.23755
+            },
+            {
+              "lat": 25.7547,
+              "lon": 36.22505
+            },
+            {
+              "lat": 26.56251,
+              "lon": 35.43755
+            },
+            {
+              "lat": 27.36467,
+              "lon": 34.4813
+            },
+            {
+              "lat": 28.16105,
+              "lon": 33.52528
+            },
+            {
+              "lat": 28.95155,
+              "lon": 33.04693
+            },
+            {
+              "lat": 29.34457,
+              "lon": 32.76568
+            },
+            {
+              "lat": 29.63834,
+              "lon": 32.59688
+            },
+            {
+              "lat": 29.95909,
+              "lon": 32.54282
+            },
+            {
+              "lat": 30.22331,
+              "lon": 32.28755
+            },
+            {
+              "lat": 30.39325,
+              "lon": 31.95005
+            },
+            {
+              "lat": 30.61132,
+              "lon": 31.38755
+            },
+            {
+              "lat": 30.82897,
+              "lon": 30.82505
+            },
+            {
+              "lat": 31.19147,
+              "lon": 29.89351
+            },
+            {
+              "lat": 32.36445,
+              "lon": 28.64966
+            },
+            {
+              "lat": 33.68339,
+              "lon": 25.23815
+            },
+            {
+              "lat": 34.39635,
+              "lon": 22.04998
+            },
+            {
+              "lat": 34.61921,
+              "lon": 19.2796
+            },
+            {
+              "lat": 34.25341,
+              "lon": 16.62411
+            },
+            {
+              "lat": 34.77629,
+              "lon": 14.41559
+            },
+            {
+              "lat": 35.84292,
+              "lon": 12.64225
+            },
+            {
+              "lat": 36.3894,
+              "lon": 12.2736
+            },
+            {
+              "lat": 36.87322,
+              "lon": 12.26257
+            },
+            {
+              "lat": 38.21118,
+              "lon": 12.26257
+            },
+            {
+              "lat": 38.38775,
+              "lon": 12.15007
+            },
+            {
+              "lat": 38.38775,
+              "lon": 10.34862
+            },
+            {
+              "lat": 38.38775,
+              "lon": 9.00007
+            },
+            {
+              "lat": 38.38775,
+              "lon": 8.10007
+            },
+            {
+              "lat": 38.65181,
+              "lon": 7.65007
+            },
+            {
+              "lat": 41.74436,
+              "lon": 6.18757
+            },
+            {
+              "lat": 43.29363,
+              "lon": 5.37253
+            }
+          ],
+          "route_landings": [
+            {
+              "id": "mumbai-india",
+              "name": "Mumbai, India",
+              "country": "IN",
+              "lat": 19.07608,
+              "lon": 72.87587
+            },
+            {
+              "id": "jeddah-saudi-arabia",
+              "name": "Jeddah, Saudi Arabia",
+              "country": "SA",
+              "lat": 21.48126,
+              "lon": 39.18276
+            },
+            {
+              "id": "suez-egypt",
+              "name": "Suez, Egypt",
+              "country": "EG",
+              "lat": 29.97229,
+              "lon": 32.53013
+            },
+            {
+              "id": "alexandria-egypt",
+              "name": "Alexandria, Egypt",
+              "country": "EG",
+              "lat": 31.19189,
+              "lon": 29.8898
+            },
+            {
+              "id": "marseille-france",
+              "name": "Marseille, France",
+              "country": "FR",
+              "lat": 43.29316,
+              "lon": 5.37263
+            }
+          ]
+        },
+        "alternatives": [
+          {
+            "cable_id": "imewe",
+            "name": "IMEWE",
+            "probability": 0.22,
+            "score": 0.794,
+            "owner_match": true,
+            "matched_owners": [
+              "Tata Communications"
+            ],
+            "rfs_year": 2010,
+            "landing_a": {
+              "id": "mumbai-india",
+              "name": "Mumbai, India",
+              "country": "IN",
+              "lat": 19.07608,
+              "lon": 72.87587
+            },
+            "landing_b": {
+              "id": "marseille-france",
+              "name": "Marseille, France",
+              "country": "FR",
+              "lat": 43.29316,
+              "lon": 5.37263
+            },
+            "backhaul_a_km": 13.5,
+            "backhaul_b_km": 1,
+            "cable_path_km": 8797.3,
+            "expected_rtt_ms": 86.3,
+            "corridor_km": 210.2,
+            "score_components": {
+              "rtt_fit": 0.665,
+              "endpoints": 0.971,
+              "owner": 1,
+              "corridor": 0.591
+            },
+            "route_landings": [
+              {
+                "id": "mumbai-india",
+                "name": "Mumbai, India",
+                "country": "IN",
+                "lat": 19.07608,
+                "lon": 72.87587
+              },
+              {
+                "id": "suez-egypt",
+                "name": "Suez, Egypt",
+                "country": "EG",
+                "lat": 29.97229,
+                "lon": 32.53013
+              },
+              {
+                "id": "alexandria-egypt",
+                "name": "Alexandria, Egypt",
+                "country": "EG",
+                "lat": 31.19189,
+                "lon": 29.8898
+              },
+              {
+                "id": "marseille-france",
+                "name": "Marseille, France",
+                "country": "FR",
+                "lat": 43.29316,
+                "lon": 5.37263
+              }
+            ]
+          },
+          {
+            "cable_id": "asia-africa-europe-1-aae-1",
+            "name": "Asia Africa Europe-1 (AAE-1)",
+            "probability": 0.172,
+            "score": 0.618,
+            "owner_match": false,
+            "rfs_year": 2017,
+            "landing_a": {
+              "id": "mumbai-india",
+              "name": "Mumbai, India",
+              "country": "IN",
+              "lat": 19.07608,
+              "lon": 72.87587
+            },
+            "landing_b": {
+              "id": "marseille-france",
+              "name": "Marseille, France",
+              "country": "FR",
+              "lat": 43.29316,
+              "lon": 5.37263
+            },
+            "backhaul_a_km": 1.7,
+            "backhaul_b_km": 1,
+            "cable_path_km": 8890.6,
+            "expected_rtt_ms": 87.1,
+            "corridor_km": 192.1,
+            "score_components": {
+              "rtt_fit": 0.701,
+              "endpoints": 0.995,
+              "owner": 0,
+              "corridor": 0.619
+            },
+            "route_landings": [
+              {
+                "id": "mumbai-india",
+                "name": "Mumbai, India",
+                "country": "IN",
+                "lat": 19.07608,
+                "lon": 72.87587
+              },
+              {
+                "id": "zafarana-egypt",
+                "name": "Zafarana, Egypt",
+                "country": "EG",
+                "lat": 29.11669,
+                "lon": 32.64986
+              },
+              {
+                "id": "abu-talat-egypt",
+                "name": "Abu Talat, Egypt",
+                "country": "EG",
+                "lat": 31.07185,
+                "lon": 29.70249
+              },
+              {
+                "id": "marseille-france",
+                "name": "Marseille, France",
+                "country": "FR",
+                "lat": 43.29316,
+                "lon": 5.37263
+              }
+            ]
+          },
+          {
+            "cable_id": "europe-india-gateway-eig",
+            "name": "Europe India Gateway (EIG)",
+            "probability": 0.145,
+            "score": 0.522,
+            "owner_match": false,
+            "rfs_year": 2011,
+            "landing_a": {
+              "id": "mumbai-india",
+              "name": "Mumbai, India",
+              "country": "IN",
+              "lat": 19.07608,
+              "lon": 72.87587
+            },
+            "landing_b": {
+              "id": "monaco-monaco",
+              "name": "Monaco, Monaco",
+              "country": "MC",
+              "lat": 43.73262,
+              "lon": 7.41765
+            },
+            "backhaul_a_km": 13.6,
+            "backhaul_b_km": 157.6,
+            "cable_path_km": 8749.4,
+            "expected_rtt_ms": 87.9,
+            "corridor_km": 338,
+            "score_components": {
+              "rtt_fit": 0.739,
+              "endpoints": 0.71,
+              "owner": 0,
+              "corridor": 0.43
+            },
+            "route_landings": [
+              {
+                "id": "mumbai-india",
+                "name": "Mumbai, India",
+                "country": "IN",
+                "lat": 19.07608,
+                "lon": 72.87587
+              },
+              {
+                "id": "zafarana-egypt",
+                "name": "Zafarana, Egypt",
+                "country": "EG",
+                "lat": 29.11669,
+                "lon": 32.64986
+              },
+              {
+                "id": "abu-talat-egypt",
+                "name": "Abu Talat, Egypt",
+                "country": "EG",
+                "lat": 31.07185,
+                "lon": 29.70249
+              }
+            ]
+          },
+          {
+            "cable_id": "seamewe-5",
+            "name": "SeaMeWe-5",
+            "probability": 0.124,
+            "score": 0.447,
+            "owner_match": false,
+            "rfs_year": 2016,
+            "landing_b": {
+              "id": "toulon-france",
+              "name": "Toulon, France",
+              "country": "FR",
+              "lat": 43.12529,
+              "lon": 5.93034
+            },
+            "backhaul_a_km": 631,
+            "backhaul_b_km": 49.5,
+            "cable_path_km": 8384.4,
+            "expected_rtt_ms": 90.8,
+            "corridor_km": 405.8,
+            "score_components": {
+              "rtt_fit": 0.887,
+              "endpoints": 0.256,
+              "owner": 0,
+              "corridor": 0.363
+            },
+            "route_landings": [
+              {
+                "id": "zafarana-egypt",
+                "name": "Zafarana, Egypt",
+                "country": "EG",
+                "lat": 29.11669,
+                "lon": 32.64986
+              },
+              {
+                "id": "abu-talat-egypt",
+                "name": "Abu Talat, Egypt",
+                "country": "EG",
+                "lat": 31.07185,
+                "lon": 29.70249
+              },
+              {
+                "id": "toulon-france",
+                "name": "Toulon, France",
+                "country": "FR",
+                "lat": 43.12529,
+                "lon": 5.93034
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "index": 3,
+      "from": {
+        "ttl": 5,
+        "ip": "80.231.200.1",
+        "label": "Marseille",
+        "lat": 43.3026,
+        "lon": 5.36907,
+        "country_iso2": "FR"
+      },
+      "to": {
+        "ttl": 6,
+        "ip": "80.231.153.1",
+        "label": "Paris",
+        "lat": 48.8575,
+        "lon": 2.35138,
+        "country_iso2": "FR"
+      },
+      "distance_km": 659.9,
+      "delta_rtt_ms": 8.6,
+      "min_feasible_rtt_ms": 6.463,
+      "medium": "terrestrial_fiber",
+      "confidence": 0.7,
+      "operator": {
+        "asn": 6453,
+        "name": "TATA COMMUNICATIONS (AMERICA) INC"
+      },
+      "ocean": {
+        "distance_km": 659.9,
+        "crosses_ocean": false,
+        "water_km": 0,
+        "longest_water_km": 0,
+        "water_fraction": 0,
+        "countries_overflown": [
+          "FR"
+        ],
+        "water_runs": []
+      }
+    },
+    {
+      "index": 4,
+      "from": {
+        "ttl": 6,
+        "ip": "80.231.153.1",
+        "label": "Paris",
+        "lat": 48.8575,
+        "lon": 2.35138,
+        "country_iso2": "FR"
+      },
+      "to": {
+        "ttl": 8,
+        "ip": "18.96.32.10",
+        "label": "Frankfurt am Main",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "country_iso2": "DE"
+      },
+      "via_unlocated_ttls": [
+        7
+      ],
+      "distance_km": 477.9,
+      "delta_rtt_ms": 7.6,
+      "min_feasible_rtt_ms": 4.681,
+      "medium": "terrestrial_fiber",
+      "confidence": 0.7,
+      "operator": {
+        "asn": 16509,
+        "name": "Amazon.com, Inc."
+      },
+      "ocean": {
+        "distance_km": 477.9,
+        "crosses_ocean": false,
+        "water_km": 0,
+        "longest_water_km": 0,
+        "water_fraction": 0,
+        "countries_overflown": [
+          "FR",
+          "BE",
+          "LU",
+          "DE"
+        ],
+        "water_runs": []
+      }
+    }
+  ],
+  "mobile": {
+    "operator": {
+      "asn": 55836,
+      "name": "Reliance Jio Infocomm",
+      "brand": "Jio",
+      "country": "IN",
+      "mcc": "405",
+      "mncs": [
+        "840",
+        "854",
+        "855",
+        "856",
+        "857",
+        "858",
+        "859",
+        "860",
+        "861",
+        "862",
+        "863",
+        "864",
+        "865",
+        "866",
+        "867",
+        "868",
+        "869",
+        "870",
+        "871",
+        "872",
+        "873",
+        "874"
+      ],
+      "source": "seed",
+      "confidence": 0.95
+    },
+    "evidence": [
+      {
+        "signal": "mno_asn_registry",
+        "value": "AS55836 Reliance Jio Infocomm (seed)",
+        "confidence": 0.95
+      },
+      {
+        "signal": "device_mcc_mnc",
+        "value": "405-874 -\u003e AS55836 Reliance Jio Infocomm (first hop AS55836: match)",
+        "confidence": 0.9
+      },
+      {
+        "signal": "cgnat_before_gateway",
+        "value": "TTL [1] in 100.64.0.0/10",
+        "confidence": 0.6
+      },
+      {
+        "signal": "device_access_type",
+        "value": "cellular",
+        "confidence": 0.7
+      }
+    ],
+    "gateway_ttl": 3,
+    "gateway_ip": "49.36.0.1",
+    "cgnat_ttls": [
+      1
+    ],
+    "gateway_hub": {
+      "id": "in-mumbai",
+      "name": "Mumbai interconnection metro (33 PeeringDB facilities)",
+      "city": "Mumbai",
+      "country": "IN",
+      "lat": 19.12118,
+      "lon": 72.92689,
+      "kind": "country_interconnection_metro",
+      "facilities": 33,
+      "confidence": 0.35
+    },
+    "hub_distance_km": 12.3,
+    "hub_anchor": "device_location",
+    "hubs_considered": 6,
+    "link_indexes": [
+      0
+    ],
+    "confidence": 0.98
+  },
+  "mapping": [
+    {
+      "seq": 1,
+      "network": {
+        "kind": "device"
+      },
+      "infrastructure": {
+        "kind": "device",
+        "name": "measuring device (cellular)",
+        "location": "19.0596, 72.8295",
+        "confidence": 1
+      }
+    },
+    {
+      "seq": 2,
+      "network": {
+        "kind": "hop",
+        "ttl": 1,
+        "ip": "100.72.0.1"
+      },
+      "infrastructure": {
+        "kind": "cgnat",
+        "name": "carrier-grade NAT",
+        "confidence": 0.8
+      }
+    },
+    {
+      "seq": 3,
+      "network": {
+        "kind": "link",
+        "from_ttl": 0,
+        "to_ttl": 3
+      },
+      "infrastructure": {
+        "kind": "cellular_backhaul",
+        "name": "cellular backhaul (Reliance Jio Infocomm)",
+        "operator": "Reliance Jio Infocomm",
+        "location": "Mumbai, IN",
+        "countries": [
+          "IN"
+        ],
+        "hub_id": "in-mumbai",
+        "confidence": 0.98
+      }
+    },
+    {
+      "seq": 4,
+      "network": {
+        "kind": "hop",
+        "ttl": 3,
+        "ip": "49.36.0.1",
+        "asn": 55836
+      },
+      "infrastructure": {
+        "kind": "mno_gateway",
+        "name": "MNO packet gateway (Reliance Jio Infocomm)",
+        "operator": "Reliance Jio Infocomm Limited",
+        "location": "Mumbai, IN",
+        "hub_id": "in-mumbai",
+        "confidence": 0.35
+      }
+    },
+    {
+      "seq": 5,
+      "network": {
+        "kind": "link",
+        "from_ttl": 3,
+        "to_ttl": 4
+      },
+      "infrastructure": {
+        "kind": "metro_fiber",
+        "name": "metro fiber, Mumbai",
+        "operator": "TATA COMMUNICATIONS (AMERICA) INC",
+        "countries": [
+          "IN"
+        ],
+        "confidence": 0.75
+      }
+    },
+    {
+      "seq": 6,
+      "network": {
+        "kind": "hop",
+        "ttl": 4,
+        "ip": "180.87.38.1",
+        "asn": 6453
+      },
+      "infrastructure": {
+        "kind": "router",
+        "name": "if-ae-2-2.tcore1.mlv-mumbai.as6453.net",
+        "operator": "TATA COMMUNICATIONS (AMERICA) INC",
+        "location": "Mumbai, IN",
+        "confidence": 0.7
+      }
+    },
+    {
+      "seq": 7,
+      "network": {
+        "kind": "link",
+        "from_ttl": 4,
+        "to_ttl": 5
+      },
+      "infrastructure": {
+        "kind": "subsea_cable",
+        "name": "SeaMeWe-4",
+        "operator": "TATA COMMUNICATIONS (AMERICA) INC",
+        "countries": [
+          "IN",
+          "SA",
+          "EG",
+          "FR"
+        ],
+        "cable_id": "seamewe-4",
+        "landing_a": "Mumbai, India",
+        "landing_b": "Marseille, France",
+        "probability": 0.228,
+        "confidence": 0.9
+      }
+    },
+    {
+      "seq": 8,
+      "network": {
+        "kind": "hop",
+        "ttl": 5,
+        "ip": "80.231.200.1",
+        "asn": 6453
+      },
+      "infrastructure": {
+        "kind": "router",
+        "name": "if-be-2-2.ecore1.emrs2-marseille.as6453.net",
+        "operator": "TATA COMMUNICATIONS (AMERICA) INC",
+        "location": "Marseille, FR",
+        "confidence": 0.7
+      }
+    },
+    {
+      "seq": 9,
+      "network": {
+        "kind": "link",
+        "from_ttl": 5,
+        "to_ttl": 6
+      },
+      "infrastructure": {
+        "kind": "terrestrial_fiber",
+        "name": "terrestrial fiber, Marseille → Paris",
+        "operator": "TATA COMMUNICATIONS (AMERICA) INC",
+        "countries": [
+          "FR"
+        ],
+        "confidence": 0.7
+      }
+    },
+    {
+      "seq": 10,
+      "network": {
+        "kind": "hop",
+        "ttl": 6,
+        "ip": "80.231.153.1",
+        "asn": 6453
+      },
+      "infrastructure": {
+        "kind": "router",
+        "name": "if-ae-11-2.tcore1.pvu-paris.as6453.net",
+        "operator": "TATA COMMUNICATIONS (AMERICA) INC",
+        "location": "Paris, FR",
+        "confidence": 0.7
+      }
+    },
+    {
+      "seq": 11,
+      "network": {
+        "kind": "hop",
+        "ttl": 7,
+        "ip": "52.93.0.1",
+        "asn": 16509
+      },
+      "infrastructure": {
+        "kind": "cloud_edge",
+        "name": "52.93.0.1",
+        "operator": "Amazon.com, Inc.",
+        "confidence": 0.5
+      }
+    },
+    {
+      "seq": 12,
+      "network": {
+        "kind": "link",
+        "from_ttl": 6,
+        "to_ttl": 8
+      },
+      "infrastructure": {
+        "kind": "terrestrial_fiber",
+        "name": "terrestrial fiber, Paris → Frankfurt am Main",
+        "operator": "Amazon.com, Inc.",
+        "countries": [
+          "FR",
+          "BE",
+          "LU",
+          "DE"
+        ],
+        "confidence": 0.7
+      }
+    },
+    {
+      "seq": 13,
+      "network": {
+        "kind": "hop",
+        "ttl": 8,
+        "ip": "18.96.32.10",
+        "asn": 16509
+      },
+      "infrastructure": {
+        "kind": "destination",
+        "name": "18.96.32.10",
+        "operator": "Amazon.com, Inc.",
+        "location": "Frankfurt am Main, DE",
+        "confidence": 0.7
+      }
+    }
+  ],
+  "summary": {
+    "media": [
+      "cellular_backhaul",
+      "metro_fiber",
+      "subsea_cable",
+      "terrestrial_fiber"
+    ],
+    "hop_countries": [
+      "IN",
+      "FR",
+      "DE"
+    ],
+    "countries_traversed": [
+      "IN",
+      "SA",
+      "EG",
+      "FR",
+      "BE",
+      "LU",
+      "DE"
+    ],
+    "subsea_cables": [
+      "SeaMeWe-4"
+    ],
+    "ocean_crossings": 1,
+    "cellular": true,
+    "located_hops": 5,
+    "rejected_locations": 1,
+    "path_km": 7940.5
+  },
+  "provenance": {
+    "geoip": "cache(chain(dbip-lite-2026-11 (recorded)))",
+    "datasets": {
+      "cables": "submarine_cables.mock.geojson (42 cables)",
+      "gateway_hubs": "PeeringDB fac/netfac/netixlan/ixfac",
+      "geoip_static": "dbip-lite-2026-11 (recorded)",
+      "land": "Natural Earth 1:50m admin-0 (1620 polygons)",
+      "mno_registry": "13 seed + 734 PeeringDB x MCC-MNC matches",
+      "router_hostnames": "PacketPulse seed gazetteer (IATA/CLLI/city tokens)"
+    },
+    "enrichment_ms": 8.32
+  }
+}
