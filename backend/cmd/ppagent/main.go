@@ -66,8 +66,14 @@ func main() {
 	lon := flag.Float64("lon", 0, "your longitude")
 	country := flag.String("country", "", "your ISO2 country (required with -lat/-lon)")
 	city := flag.String("city", "", "your city")
-	flag.Parse()
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	// Some Windows shells pass the program's own path again as the first
+	// argument; it would stop flag parsing and be traced as a "target".
+	args, dropped := withoutSelf(os.Args[1:])
+	for _, d := range dropped {
+		log.Debug("ignoring argument that is this program's own path", "arg", d)
+	}
+	flag.CommandLine.Parse(args)
 
 	token := os.Getenv("PACKETPULSE_AGENT_TOKEN")
 	if token == "" {
@@ -105,6 +111,10 @@ func main() {
 
 	if targets := flag.Args(); len(targets) > 0 {
 		for _, t := range targets {
+			if !looksLikeTarget(t) {
+				log.Error("not a hostname or IP address; skipping (flags must come before targets)", "arg", t)
+				continue
+			}
 			if err := a.oneOff(ctx, t); err != nil {
 				log.Error("trace failed", "target", t, "err", err)
 			}
@@ -291,6 +301,42 @@ func (a *agent) auth(r *http.Request) {
 	r.Header.Set("Authorization", "Bearer "+a.token)
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("User-Agent", "ppagent/"+version)
+}
+
+// withoutSelf removes arguments that name this executable.
+func withoutSelf(args []string) (kept, dropped []string) {
+	self, _ := os.Executable()
+	selfInfo, err := os.Stat(self)
+	for _, a := range args {
+		if a == os.Args[0] || a == self {
+			dropped = append(dropped, a)
+			continue
+		}
+		if err == nil && strings.ContainsAny(a, `/\`) {
+			if fi, err := os.Stat(a); err == nil && os.SameFile(fi, selfInfo) {
+				dropped = append(dropped, a)
+				continue
+			}
+		}
+		kept = append(kept, a)
+	}
+	return kept, dropped
+}
+
+// looksLikeTarget accepts IP addresses and DNS names, not paths or URLs.
+func looksLikeTarget(s string) bool {
+	if _, err := netip.ParseAddr(s); err == nil {
+		return true
+	}
+	if s == "" || len(s) > 253 || strings.ContainsAny(s, `/\:?#@ `) {
+		return false
+	}
+	for _, label := range strings.Split(strings.TrimSuffix(s, "."), ".") {
+		if label == "" || len(label) > 63 {
+			return false
+		}
+	}
+	return true
 }
 
 func canTrace() bool {
