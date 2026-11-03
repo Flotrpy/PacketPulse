@@ -63,11 +63,13 @@ drawn on a 3D globe and checked against data-sovereignty laws (GDPR, RBI, CCPA�
 6. [Deployment](#-deployment)
 7. [Project structure](#-project-structure)
 8. [Accuracy and limits](#-accuracy-and-limits)
-9. [Roadmap](#-roadmap)
-10. [Contributing](#-contributing)
-11. [License](#-license)
-12. [Contact](#-contact)
-13. [Acknowledgments](#-acknowledgments)
+   - [How a subsea crossing is detected](#how-a-subsea-crossing-is-detected)
+9. [What's new](#-whats-new)
+10. [Roadmap](#-roadmap)
+11. [Contributing](#-contributing)
+12. [License](#-license)
+13. [Contact](#-contact)
+14. [Acknowledgments](#-acknowledgments)
 
 </details>
 
@@ -516,7 +518,43 @@ PacketPulse shows *inferred* facts, and says how sure it is:
 - **Compliance verdicts** are `compliant`, `violation` or `suspected`: suspected when a location is uncertain or an exception needs review. The law directory is informational, **not legal advice**.
 - **Traceroute sees the forward path only**, and some networks hide hops (MPLS, ICMP filtering).
 
+### How a subsea crossing is detected
+
+Traceroute never "sees" a cable, so PacketPulse works it out from three clues, using a real trace from New Jersey to Helsinki as the example:
+
+| Hop | Router | RTT | Located by |
+|---|---|---|---|
+| 6 | `ewr-bb2-link.ip.twelve99.net` | 6.6 ms | router name: **ewr** = Newark |
+| 7 | `kbn-bb6-link.ip.twelve99.net` | 105.9 ms | router name: **kbn** = Copenhagen |
+| 11 | `hetzner-ic-….ip.twelve99-cust.net` | 102.4 ms | database said *Phoenix*: **rejected** |
+| 14 | `hel1-speed.hetzner.com` | 104.8 ms | router name: **hel** = Helsinki |
+
+1. **Place each router.** Carrier router names hide airport or city codes (`ewr`, `kbn`, `ldn`, `fra`, `hls`…). PacketPulse decodes them first, then falls back to the DB-IP City database.
+2. **Reject impossible places.** Light in fiber covers about 204 km per millisecond, so each location must fit inside the router's round-trip time, *including the path through the previous router*. A detour that the timings can't pay for is thrown out: here, Phoenix between Stockholm and Helsinki at almost the same RTT. Routers with no usable location are bridged, so the crossing is measured from the last router that is placed.
+3. **Decide the medium and the cable.** Newark → Copenhagen spans 6,200 km between continents with no land route, so it's a **subsea cable**. Candidate cables from the TeleGeography dataset are ranked by how well their landing stations and length fit the 99 ms jump, and by whether the network operator co-owns them. Here the winner is **Havfrue/AEC-2** (Wall Township, New Jersey → Blaabjerg, Denmark). If no cable lands in both countries, cables landing elsewhere on the far continent are considered.
+
+What you see on the globe: the hop after the big latency jump, with **link in: subsea cable · Havfrue/AEC-2** and the runner-up cables with their probabilities.
+
 More detail: [backend/README.md › What the inference can and cannot tell you](backend/README.md#what-the-inference-can-and-cannot-tell-you) and the research [blueprint](docs/BLUEPRINT.md).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+---
+
+## 📝 What's new
+
+The latest round of changes, all live on the [demo](https://packetpulse-eta.vercel.app):
+
+| | Change |
+|---|---|
+| 🛰️ **Your own traffic** | Traces now start from **your computer and public IP** through the `ppagent` agent, instead of a recorded India → Frankfurt example. The globe opens on live traces by default |
+| 🪟 **Windows in one line** | `irm …/start-ppagent.ps1 \| iex` in an Administrator PowerShell downloads the agent, opens the firewall for traceroute replies, remembers your token and starts. See the [Quick start](#-quick-start-trace-from-your-windows-pc-2-minutes). Fixed: Windows passed the agent its own path as a target, which made it exit |
+| 🌍 **Realistic Earth** | Satellite imagery lit by the **real sun** for the current time: day and night sides, city lights, drifting clouds, ocean glint. Replaces the blue dot sphere |
+| 🧱 **No overlapping panels** | Side panels stack in columns and scroll on their own; dragging the globe no longer highlights panel text |
+| 🌊 **Subsea cables on real traces** | Carrier router codes (Arelion/Telia, OVH, Hetzner, Verizon), path and detour checks, and bridging of unlocated routers, so a New Jersey → Helsinki trace now shows **Havfrue/AEC-2**. See [How a subsea crossing is detected](#how-a-subsea-crossing-is-detected) |
+| 🇪🇺 **Atlantic test targets** | One-click **London, Roubaix, Amsterdam, Frankfurt, Stockholm, Helsinki** buttons: servers in a single European data centre, so traffic from the Americas must cross the ocean. See the [target list](#targets-that-cross-a-subsea-cable) |
+| 📍 **Realistic geolocation** | DB-IP City database on the server; anycast services (1.1.1.1, 8.8.8.8) are no longer drawn on the wrong continent |
+| 📘 **README** | Badges, quick start, Windows/macOS/Linux guides, troubleshooting, API and deployment docs |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -531,6 +569,9 @@ More detail: [backend/README.md › What the inference can and cannot tell you](
 - [x] Data classification at ingestion
 - [x] Trace from your own computer (Windows, macOS, Linux agent)
 - [x] City-level GeoIP with speed-of-light validation
+- [x] One-line Windows launcher
+- [x] Realistic sunlit Earth (day/night, city lights, clouds)
+- [x] Subsea crossing detection on real carrier traces
 - [ ] Signed Windows/macOS agent installers and a tray app
 - [ ] Persistent storage (PostGIS) for journeys and alerts
 - [ ] RIPE Atlas integration for paths from other countries
