@@ -26,6 +26,19 @@ interface AgentJob {
 }
 
 const TOKEN_KEY = "packetpulse.traceToken";
+
+/**
+ * Servers that live in one European data centre (not behind a CDN), so a
+ * trace from the Americas has to cross the Atlantic on a subsea cable.
+ */
+export const EUROPE_TARGETS: { host: string; label: string }[] = [
+  { host: "speedtest.london.linode.com", label: "London" },
+  { host: "proof.ovh.net", label: "Roubaix" },
+  { host: "speedtest.ams1.nl.leaseweb.net", label: "Amsterdam" },
+  { host: "speedtest.frankfurt.linode.com", label: "Frankfurt" },
+  { host: "www.kth.se", label: "Stockholm" },
+  { host: "hel1-speed.hetzner.com", label: "Helsinki" },
+];
 const SERVER = "https://packetpulse-test.onrender.com"; // where ppagent connects (long-polls bypass the CDN)
 
 function load(key: string): string {
@@ -64,6 +77,11 @@ export class TracePanel {
     this.root.addEventListener("click", (e) => {
       const t = e.target as HTMLElement;
       if (t.dataset.act === "setup") this.root.querySelector(".tp-setup")?.classList.toggle("open");
+      if (t.dataset.target) {
+        const input = this.root.querySelector<HTMLInputElement>('input[name="target"]')!;
+        input.value = t.dataset.target;
+        void this.trace();
+      }
     });
     void this.refreshAgents();
     this.timer = window.setInterval(() => void this.refreshAgents(), 10000);
@@ -99,6 +117,7 @@ export class TracePanel {
         <input name="token" type="password" placeholder="trace token" autocomplete="off" value="${esc(load(TOKEN_KEY))}" />
         <button type="submit">Trace</button>
       </form>
+      <div class="tp-quick"><span class="muted">Across the Atlantic:</span> ${EUROPE_TARGETS.map((t) => `<button type="button" data-target="${esc(t.host)}" title="${esc(t.host)}">${esc(t.label)}</button>`).join("")}</div>
       <div class="tp-status muted"></div>
       <a href="#" data-act="setup" class="tp-link" onclick="return false">Set up the agent on this computer</a>
       <div class="tp-setup">
@@ -115,7 +134,7 @@ $env:PACKETPULSE_AGENT_TOKEN="&lt;agent token&gt;"
         <p class="muted">If hops show no replies, allow ICMP through Windows Firewall once:<br><code>netsh advfirewall firewall add rule name="PacketPulse ICMP" dir=in action=allow protocol=icmpv4:any,any</code></p>
         <p class="muted">It connects to ${esc(SERVER)}, finds your location from your public IP (override with -lat -lon -country), and waits for traces from this box.</p>
       </div>
-      <div class="tp-attr muted"><a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a></div>`;
+      <div class="tp-attr muted"><a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a> · Earth imagery: <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0), NASA</div>`;
   }
 
   private renderAgent(): void {
