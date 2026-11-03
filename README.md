@@ -96,7 +96,7 @@ When you open a website, your data hops through a dozen routers, ISPs, maybe a s
 | 🌊 **Infrastructure inference** | Subsea cable matching (TeleGeography-style data), cellular backhaul and gateway hubs, carriers and cloud backbones, each with a confidence score |
 | 🏷️ **Data classification** | Rules on hostname, SNI, IP range, ASN, cloud, port and app, editable live over the API |
 | ⚖️ **Compliance engine** | Countries, subdivisions and custom polygons; allow/deny lists; exceptions; `ComplianceViolationAlert`s with law, timestamp and mitigation |
-| 🌐 **3D globe** | One draw call for all arcs (instanced), latency colour gradient, click-to-fly camera, Business Mode overlay with a law directory |
+| 🌐 **Realistic 3D Earth** | Satellite imagery lit by the real sun for the current time: day/night line, city lights, clouds, ocean glint. One draw call for all arcs (instanced), latency colours, click-to-fly camera, Business Mode overlay |
 | 📡 **Live streaming** | Server-Sent Events push every finished journey and alert to the browser |
 | 🔐 **Safe by default** | Token-gated trace submission, public-targets-only, schema-validated inputs, no payload inspection |
 
@@ -195,7 +195,7 @@ You need the **agent token** of the deployment. For the demo deployment, the own
    level=INFO msg="waiting for trace jobs from the globe" server=https://packetpulse-test.onrender.com
    ```
 
-5. **Trace!** Open https://packetpulse-eta.vercel.app. The **Trace from my computer** panel shows your computer as online with your city. Type a target (`google.com`, `bbc.co.uk`, `1.1.1.1`), paste the same token into **trace token**, and press **Trace**. The camera flies to your path.
+5. **Trace!** Open https://packetpulse-eta.vercel.app. The **Trace from my computer** panel shows your computer as online with your city. Paste the same token into **trace token**, then type a target and press **Trace**, or click one of the **Across the Atlantic** buttons. The camera flies to your path.
 
 6. **Stop** the agent with <kbd>Ctrl</kbd>+<kbd>C</kbd> or by closing the window. To remove the firewall rule later:
 
@@ -242,6 +242,22 @@ sudo setcap cap_net_raw+ep ./ppagent
 PACKETPULSE_AGENT_TOKEN=… ./ppagent
 ```
 </details>
+
+#### Targets that cross a subsea cable
+
+Big sites (google.com, bbc.co.uk, ripe.net) answer from a CDN server near you, so the trace never leaves your continent. To watch packets cross the ocean, trace a server that lives in **one** data centre on the other side. From the Americas, these all cross the Atlantic (they're also one-click buttons in the panel):
+
+| Target | Where it is |
+|---|---|
+| `speedtest.london.linode.com` | London, UK (Linode / Akamai) |
+| `proof.ovh.net` | Roubaix, France (OVHcloud) |
+| `speedtest.ams1.nl.leaseweb.net` | Amsterdam, Netherlands (Leaseweb) |
+| `speedtest.frankfurt.linode.com` | Frankfurt, Germany (Linode / Akamai) |
+| `www.kth.se` | Stockholm, Sweden (KTH university) |
+| `hel1-speed.hetzner.com` | Helsinki, Finland (Hetzner) |
+| `www.uio.no` | Oslo, Norway (University of Oslo) |
+
+Click the hop where the latency jumps by 60–80 ms. The link into it is marked **subsea cable**, with the most likely cable and its alternatives. Add the data class `eu_personal_data` and turn on Business Mode to see which jurisdictions the crossing touches.
 
 #### Agent flags
 
@@ -495,6 +511,7 @@ Project: [github.com/Flotrpy/PacketPulse](https://github.com/Flotrpy/PacketPulse
 ## 🙏 Acknowledgments
 
 - [IP Geolocation by DB-IP](https://db-ip.com) (DB-IP Lite City, CC BY 4.0)
+- Earth imagery: [Solar System Scope](https://www.solarsystemscope.com/textures/) textures (CC BY 4.0), based on NASA Blue Marble and Black Marble
 - [Natural Earth](https://www.naturalearthdata.com) country and province boundaries
 - [TeleGeography Submarine Cable Map](https://www.submarinecablemap.com), [PeeringDB](https://www.peeringdb.com), [CAIDA AS Relationships](https://www.caida.org/catalog/datasets/as-relationships/), [iptoasn.com](https://iptoasn.com)
 - [DLA Piper Data Protection Laws of the World](https://www.dlapiperdataprotection.com) and [UNCTAD](https://unctad.org/page/data-protection-and-privacy-legislation-worldwide) for the law directory research
