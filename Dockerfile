@@ -37,6 +37,7 @@ WORKDIR /app
 COPY --from=api /out/packetpulse /app/packetpulse
 COPY --from=web /src/frontend/dist /app/web
 COPY --from=api /out/agents /app/agents
+COPY scripts/windows/start-ppagent.ps1 /app/agents/start-ppagent.ps1
 COPY --from=geoip /out/dbip-city-lite.mmdb /app/geoip/dbip-city-lite.mmdb
 COPY data/ /app/data/
 COPY backend/schema/examples/*.journey.json /app/seed/

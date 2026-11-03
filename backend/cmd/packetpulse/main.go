@@ -227,8 +227,13 @@ func run() error {
 				http.NotFound(w, r)
 				return
 			}
-			w.Header().Set("Content-Type", "application/octet-stream")
-			w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+			if strings.HasSuffix(name, ".ps1") {
+				// Text, so `irm <url> | iex` gets a string on every PowerShell version.
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			} else {
+				w.Header().Set("Content-Type", "application/octet-stream")
+				w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+			}
 			w.Header().Set("Cache-Control", "public, max-age=300")
 			dl.ServeHTTP(w, r)
 		}))

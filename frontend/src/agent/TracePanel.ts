@@ -126,12 +126,9 @@ export class TracePanel {
         <pre>curl -fLo ppagent ${esc(origin)}/v1/agent/download/ppagent-darwin-arm64 && chmod +x ppagent
 sudo PACKETPULSE_AGENT_TOKEN=&lt;agent token&gt; ./ppagent</pre>
         <b>macOS (Intel)</b> <span class="muted">ppagent-darwin-amd64</span> · <b>Linux</b> <span class="muted">ppagent-linux-amd64 / -arm64</span>
-        <b>Windows</b> <span class="muted">(Start → type PowerShell → right-click → Run as administrator)</span>
-        <pre>cd $HOME\Downloads
-curl.exe -fLo ppagent.exe ${esc(origin)}/v1/agent/download/ppagent-windows-amd64.exe
-$env:PACKETPULSE_AGENT_TOKEN="&lt;agent token&gt;"
-.\ppagent.exe</pre>
-        <p class="muted">If hops show no replies, allow ICMP through Windows Firewall once:<br><code>netsh advfirewall firewall add rule name="PacketPulse ICMP" dir=in action=allow protocol=icmpv4:any,any</code></p>
+        <b>Windows</b> <span class="muted">(Start → type PowerShell → right-click → Run as administrator, then paste)</span>
+        <pre>irm ${esc(SERVER)}/v1/agent/download/start-ppagent.ps1 | iex</pre>
+        <p class="muted">It downloads the agent, opens Windows Firewall for traceroute replies, asks for your agent token once, and starts.</p>
         <p class="muted">It connects to ${esc(SERVER)}, finds your location from your public IP (override with -lat -lon -country), and waits for traces from this box.</p>
       </div>
       <div class="tp-attr muted"><a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a> · Earth imagery: <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0), NASA</div>`;
